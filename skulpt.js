@@ -4908,6 +4908,9 @@ var Sk = Sk || {}; //jshint ignore:line
  * strings.
  * syspath: Setable to emulate PYTHONPATH environment variable (for finding
  * modules). Should be an array of JS strings.
+ * nonreadopen: Boolean - set to true to allow non-read file operations
+ * fileopen: Optional function to call any time a file is opened
+ * filewrite: Optional function to call when writing to a file
  *
  * Any variables that aren't set will be left alone.
  */
@@ -4921,6 +4924,15 @@ Sk.configure = function (options) {
 
     Sk.read = options["read"] || Sk.read;
     goog.asserts.assert(typeof Sk.read === "function");
+
+    Sk.nonreadopen = options["nonreadopen"] || false;
+    goog.asserts.assert(typeof Sk.nonreadopen === "boolean");
+
+    Sk.fileopen = options["fileopen"] || undefined;
+    goog.asserts.assert(typeof Sk.fileopen === "function" || typeof Sk.fileopen === "undefined");
+
+    Sk.filewrite = options["filewrite"] || undefined;
+    goog.asserts.assert(typeof Sk.filewrite === "function" || typeof Sk.filewrite === "undefined");
 
     Sk.timeoutMsg = options["timeoutMsg"] || Sk.timeoutMsg;
     goog.asserts.assert(typeof Sk.timeoutMsg === "function");
@@ -5671,9 +5683,14 @@ Sk.builtin.open = function open (filename, mode, bufsize) {
     if (mode === undefined) {
         mode = new Sk.builtin.str("r");
     }
-    if (mode.v !== "r" && mode.v !== "rb") {
+
+    if (/\+/.test(mode.v)) {
+      throw "todo; haven't implemented read/write mode";
+    }
+    else if ((mode.v === "w" || mode.v === "wb" || mode.v === "a" || mode.v === "ab") && !Sk.nonreadopen) {
         throw "todo; haven't implemented non-read opens";
     }
+
     return new Sk.builtin.file(filename, mode, bufsize);
 };
 
@@ -16095,7 +16112,11 @@ Sk.builtin.file = function (name, mode, buffering) {
     if (Sk.inBrowser) {  // todo:  Maybe provide a replaceable function for non-import files
         elem = document.getElementById(name.v);
         if (elem == null) {
-            throw new Sk.builtin.IOError("[Errno 2] No such file or directory: '" + name.v + "'");
+            if (mode.v == "w" || mode.v == "a") {
+              this.data$ = "";
+            } else {
+              throw new Sk.builtin.IOError("[Errno 2] No such file or directory: '" + name.v + "'");
+            }
         } else {
             if (elem.nodeName.toLowerCase() == "textarea") {
                 this.data$ = elem.value;
@@ -16116,6 +16137,10 @@ Sk.builtin.file = function (name, mode, buffering) {
     this.pos$ = 0;
 
     this.__class__ = Sk.builtin.file;
+
+    if (Sk.fileopen) {
+        Sk.fileopen(this);
+    }
 
     return this;
 };
@@ -16228,7 +16253,19 @@ Sk.builtin.file.prototype["truncate"] = new Sk.builtin.func(function (self, size
 });
 
 Sk.builtin.file.prototype["write"] = new Sk.builtin.func(function (self, str) {
-    goog.asserts.fail();
+    if (Sk.filewrite) {
+        if (self.closed) {
+            throw new Sk.builtin.ValueError("I/O operation on closed file");
+        }
+
+        if (self.mode.v === "w" || self.mode.v === "wb" || self.mode.v === "a" || self.mode.v === "ab") {
+            Sk.filewrite(self, str);
+        } else {
+            throw new Sk.builtin.IOError("File not open for writing");
+        }
+    } else {
+        goog.asserts.fail();
+    }
 });
 
 
