@@ -4944,6 +4944,9 @@ Sk.configure = function (options) {
     Sk.python3 = options["python3"] || Sk.python3;
     goog.asserts.assert(typeof Sk.python3 === "boolean");
 
+    Sk.imageProxy = options["imageProxy"] || "http://localhost:8080/320x";
+    goog.asserts.assert(typeof Sk.imageProxy === "string");
+
     Sk.inputfun = options["inputfun"] || Sk.inputfun;
     goog.asserts.assert(typeof Sk.inputfun === "function");
 
@@ -5470,7 +5473,7 @@ Sk.builtin.zip = function zip () {
             iters.push(arguments[i].tp$iter());
         }
         else {
-            throw "TypeError: argument " + i + " must support iteration";
+            throw new Sk.builtin.TypeError("argument " + i + " must support iteration");
         }
     }
     res = [];
@@ -5937,7 +5940,7 @@ Sk.builtin.map = function map (fun, seq) {
          item = iter.tp$iternext()) {
         if (fun === Sk.builtin.none.none$) {
             if (item instanceof Array) {
-                // With None function and multiple sequences, 
+                // With None function and multiple sequences,
                 // map should return a list of tuples
                 item = new Sk.builtin.tuple(item);
             }
@@ -6360,7 +6363,14 @@ Sk.builtin.intern = function intern () {
  * @param {...Object|null} args
  */
 Sk.builtin.Exception = function (args) {
-    var i;
+    var i, o;
+
+    if (!(this instanceof Sk.builtin.Exception)) {
+        o = Object.create(Sk.builtin.Exception.prototype);
+        o.constructor.apply(o, arguments);
+        return o;
+    }
+
     args = Array.prototype.slice.call(arguments);
     // hackage to allow shorter throws
     for (i = 0; i < args.length; ++i) {
@@ -6369,42 +6379,17 @@ Sk.builtin.Exception = function (args) {
         }
     }
     this.args = new Sk.builtin.tuple(args);
+    this.traceback = [];
 
-    if (Sk.currFilename) {
-        this.filename = Sk.currFilename;
-    }
-    else if (this.args.sq$length() >= 3) {
-        if (this.args.v[1].v) {
-            this.filename = this.args.v[1].v;
-        }
-        else {
-            // Unknown, this is an error, and the exception that causes it
-            // probably needs to be fixed.
-            this.filename = "<unknown>";
-        }
-    }
-    else {
-        // Unknown, this is an error, and the exception that causes it
-        // probably needs to be fixed.
-        this.filename = "<unknown>";
-    }
+    // For errors occurring during normal execution, the line/col/etc
+    // of the error are populated by each stack frame of the runtime code,
+    // but we can seed it with the supplied parameters.
     if (this.args.sq$length() >= 3) {
-        this.lineno = this.args.v[2];
-    }
-    else if (Sk.currLineNo > 0) {
-        this.lineno = Sk.currLineNo;
-    }
-    else {
-        // Unknown, this is an error, and the exception that causes it
-        // probably needs to be fixed.
-        this.lineno = "<unknown>";
-    }
 
-    if (Sk.currColNo > 0) {
-        this["colno"] = Sk.currColNo;
-    }
-    else {
-        this["colno"] = "<unknown>";
+        // if !this.args[1].v, this is an error, and the exception that causes it
+        // probably needs to be fixed, but we mark as "<unknown>" for now
+        this.traceback.push({lineno: this.args.v[2],
+                             filename: this.args.v[1].v || "<unknown>"});
     }
 };
 Sk.builtin.Exception.prototype.tp$name = "Exception";
@@ -6417,7 +6402,11 @@ Sk.builtin.Exception.prototype.tp$str = function () {
     if (this.args) {
         ret += ": " + (this.args.v.length > 0 ? this.args.v[0].v : "");
     }
-    ret += " on line " + this.lineno;
+    if (this.traceback.length !== 0) {
+        ret += " on line " + this.traceback[0].lineno;
+    } else {
+        ret += " at <unknown>";
+    }
 
     if (this.args.v.length > 4) {
         ret += "\n" + this.args.v[4].v + "\n";
@@ -6426,6 +6415,13 @@ Sk.builtin.Exception.prototype.tp$str = function () {
         }
         ret += "^\n";
     }
+
+    /*for (i = 0; i < this.traceback.length; i++) {
+        ret += "\n  at " + this.traceback[i].filename + " line " + this.traceback[i].lineno;
+        if ("colno" in this.traceback[i]) {
+            ret += " column " + this.traceback[i].colno;
+        }
+    }*/
 
     return new Sk.builtin.str(ret);
 };
@@ -6555,6 +6551,23 @@ Sk.builtin.NameError = function (args) {
 };
 goog.inherits(Sk.builtin.NameError, Sk.builtin.Exception);
 Sk.builtin.NameError.prototype.tp$name = "NameError";
+
+/**
+ * @constructor
+ * @extends Sk.builtin.Exception
+ * @param {...*} args
+ */
+Sk.builtin.UnboundLocalError = function (args) {
+    var o;
+    if (!(this instanceof Sk.builtin.UnboundLocalError)) {
+        o = Object.create(Sk.builtin.UnboundLocalError.prototype);
+        o.constructor.apply(o, arguments);
+        return o;
+    }
+    Sk.builtin.Exception.apply(this, arguments);
+};
+goog.inherits(Sk.builtin.UnboundLocalError, Sk.builtin.Exception);
+Sk.builtin.UnboundLocalError.prototype.tp$name = "UnboundLocalError";
 
 /**
  * @constructor
@@ -6792,6 +6805,30 @@ goog.exportSymbol("Sk.builtin.NegativePowerError", Sk.builtin.NegativePowerError
 /**
  * @constructor
  * @extends Sk.builtin.Exception
+ * @param {*} nativeError
+ * @param {...*} args
+ */
+Sk.builtin.ExternalError = function (nativeError, args) {
+    var o;
+    if (!(this instanceof Sk.builtin.ExternalError)) {
+        o = Object.create(Sk.builtin.ExternalError.prototype);
+        o.constructor.apply(o, arguments);
+        return o;
+    }
+    // Make the first argument a string, so it can be printed in Python without errors,
+    // but save a reference to the real thing for Javascript consumption
+    args = Array.prototype.slice.call(arguments);
+    this.nativeError = args[0];
+    args[0] = ""+args[0];
+    Sk.builtin.Exception.apply(this, args);
+};
+goog.inherits(Sk.builtin.ExternalError, Sk.builtin.Exception);
+Sk.builtin.ExternalError.prototype.tp$name = "ExternalError";
+goog.exportSymbol("Sk.builtin.ExternalError", Sk.builtin.ExternalError);
+
+/**
+ * @constructor
+ * @extends Sk.builtin.Exception
  * @param {...*} args
  */
 Sk.builtin.OperationError = function (args) {
@@ -6825,14 +6862,8 @@ goog.inherits(Sk.builtin.SystemError, Sk.builtin.Exception);
 Sk.builtin.SystemError.prototype.tp$name = "SystemError";
 goog.exportSymbol("Sk.builtin.SystemError", Sk.builtin.SystemError);
 
-Sk.currLineNo = -1;
-Sk.currColNo = -1;
-Sk.currFilename = "";
 
 goog.exportSymbol("Sk", Sk);
-goog.exportProperty(Sk, "currLineNo", Sk.currLineNo);
-goog.exportProperty(Sk, "currColNo", Sk.currColNo);
-goog.exportProperty(Sk, "currFilename", Sk.currFilename);
 /**
  *
  * @constructor
@@ -6872,6 +6903,22 @@ Sk.builtin.type = function (name, bases, dict) {
         return obj.ob$type;
     }
     else {
+
+        // argument dict must be of type dict
+        if(dict.tp$name !== "dict") {
+            throw new Sk.builtin.TypeError("type() argument 3 must be dict, not " + Sk.abstr.typeName(dict));
+        }
+
+        // checks if name must be string
+        if(!Sk.builtin.checkString(name)) {
+            throw new Sk.builtin.TypeError("type() argument 1 must be str, not " + Sk.abstr.typeName(name));
+        }
+
+        // argument bases must be of type tuple
+        if(bases.tp$name !== "tuple") {
+            throw new Sk.builtin.TypeError("type() argument 2 must be tuple, not " + Sk.abstr.typeName(bases));
+        }
+
         // type building version of type
 
         // dict is the result of running the classes code object
@@ -6917,12 +6964,27 @@ Sk.builtin.type = function (name, bases, dict) {
             return self;
         };
 
-        for (v in dict) {
-            klass.prototype[v] = dict[v];
-            klass[v] = dict[v];
+        // set __module__ if not present (required by direct type(name, bases, dict) calls)
+        var module_lk = new Sk.builtin.str("__module__");
+        if(dict.mp$lookup(module_lk) === undefined) {
+            dict.mp$ass_subscript(module_lk, Sk.globals["__name__"]);
         }
+
+        // copy properties into our klass object
+        // uses python iter methods
+        var it, k;
+        for (it = dict.tp$iter(), k = it.tp$iternext(); k !== undefined; k = it.tp$iternext()) {
+            v = dict.mp$subscript(k);
+            if (v === undefined) {
+                v = null;
+            }
+            klass.prototype[k.v] = v;
+            klass[k.v] = v;
+        }
+
+        var _name = Sk.ffi.remapToJs(name); // unwrap name string to js for latter use
         klass["__class__"] = klass;
-        klass["__name__"] = new Sk.builtin.str(name);
+        klass["__name__"] = name;
         klass.sk$klass = true;
         klass.prototype.tp$getattr = Sk.builtin.object.prototype.GenericGetAttr;
         klass.prototype.tp$setattr = Sk.builtin.object.prototype.GenericSetAttr;
@@ -6936,12 +6998,12 @@ Sk.builtin.type = function (name, bases, dict) {
             if (reprf !== undefined) {
                 return Sk.misceval.apply(reprf, undefined, undefined, undefined, []);
             }
-            mod = dict.__module__;
+            mod = dict.mp$subscript(module_lk); // lookup __module__
             cname = "";
             if (mod) {
                 cname = mod.v + ".";
             }
-            return new Sk.builtin.str("<" + cname + name + " object>");
+            return new Sk.builtin.str("<" + cname + _name + " object>");
         };
         klass.prototype.tp$str = function () {
             var strf = this.tp$getattr("__str__");
@@ -6985,29 +7047,31 @@ Sk.builtin.type = function (name, bases, dict) {
             goog.asserts.assert(iternextf !== undefined, "iter() should have caught this");
             return Sk.misceval.callsim(iternextf);
         };
-        klass.prototype.tp$getitem = function (key) {
-            var getf = this.tp$getattr("__getitem__");
+        klass.prototype.tp$getitem = function (key, canSuspend) {
+            var getf = this.tp$getattr("__getitem__"), r;
             if (getf !== undefined) {
-                return Sk.misceval.apply(getf, undefined, undefined, undefined, [key]);
+                r = Sk.misceval.applyOrSuspend(getf, undefined, undefined, undefined, [key]);
+                return canSuspend ? r : Sk.misceval.retryOptionalSuspensionOrThrow(r);
             }
             throw new Sk.builtin.TypeError("'" + Sk.abstr.typeName(this) + "' object does not support indexing");
         };
-        klass.prototype.tp$setitem = function (key, value) {
-            var setf = this.tp$getattr("__setitem__");
+        klass.prototype.tp$setitem = function (key, value, canSuspend) {
+            var setf = this.tp$getattr("__setitem__"), r;
             if (setf !== undefined) {
-                return Sk.misceval.apply(setf, undefined, undefined, undefined, [key, value]);
+                r = Sk.misceval.applyOrSuspend(setf, undefined, undefined, undefined, [key, value]);
+                return canSuspend ? r : Sk.misceval.retryOptionalSuspensionOrThrow(r);
             }
             throw new Sk.builtin.TypeError("'" + Sk.abstr.typeName(this) + "' object does not support item assignment");
         };
 
-        klass.prototype.tp$name = name;
+        klass.prototype.tp$name = _name;
 
         if (bases) {
             //print("building mro for", name);
             //for (var i = 0; i < bases.length; ++i)
             //print("base[" + i + "]=" + bases[i].tp$name);
             klass["$d"] = new Sk.builtin.dict([]);
-            klass["$d"].mp$ass_subscript(Sk.builtin.type.basesStr_, new Sk.builtin.tuple(bases));
+            klass["$d"].mp$ass_subscript(Sk.builtin.type.basesStr_, bases);
             mro = Sk.builtin.type.buildMRO(klass);
             klass["$d"].mp$ass_subscript(Sk.builtin.type.mroStr_, mro);
             klass.tp$mro = mro;
@@ -7015,7 +7079,7 @@ Sk.builtin.type = function (name, bases, dict) {
         }
 
         klass.prototype.ob$type = klass;
-        Sk.builtin.type.makeIntoTypeObj(name, klass);
+        Sk.builtin.type.makeIntoTypeObj(_name, klass);
 
         // fix for class attributes
         klass.tp$setattr = Sk.builtin.type.prototype.tp$setattr;
@@ -7332,6 +7396,11 @@ Sk.builtin.object.prototype.GenericGetAttr = function (name) {
 };
 goog.exportSymbol("Sk.builtin.object.prototype.GenericGetAttr", Sk.builtin.object.prototype.GenericGetAttr);
 
+Sk.builtin.object.prototype.GenericPythonGetAttr = function(self, name) {
+    return Sk.builtin.object.prototype.GenericGetAttr.call(self, name.v);
+};
+goog.exportSymbol("Sk.builtin.object.prototype.GenericPythonGetAttr", Sk.builtin.object.prototype.GenericPythonGetAttr);
+
 Sk.builtin.object.prototype.GenericSetAttr = function (name, value) {
     goog.asserts.assert(typeof name === "string");
     // todo; lots o' stuff
@@ -7344,12 +7413,23 @@ Sk.builtin.object.prototype.GenericSetAttr = function (name, value) {
 };
 goog.exportSymbol("Sk.builtin.object.prototype.GenericSetAttr", Sk.builtin.object.prototype.GenericSetAttr);
 
+Sk.builtin.object.prototype.GenericPythonSetAttr = function(self, name, value) {
+    return Sk.builtin.object.prototype.GenericSetAttr.call(self, name.v, value);
+};
+goog.exportSymbol("Sk.builtin.object.prototype.GenericPythonSetAttr", Sk.builtin.object.prototype.GenericPythonSetAttr);
+
 Sk.builtin.object.prototype.HashNotImplemented = function () {
     throw new Sk.builtin.TypeError("unhashable type: '" + Sk.abstr.typeName(this) + "'");
 };
 
 Sk.builtin.object.prototype.tp$getattr = Sk.builtin.object.prototype.GenericGetAttr;
 Sk.builtin.object.prototype.tp$setattr = Sk.builtin.object.prototype.GenericSetAttr;
+
+// Although actual attribute-getting happens in pure Javascript via tp$getattr, classes
+// overriding __getattr__ etc need to be able to call object.__getattr__ etc from Python
+Sk.builtin.object.prototype["__getattr__"] = Sk.builtin.object.prototype.GenericPythonGetAttr;
+Sk.builtin.object.prototype["__setattr__"] = Sk.builtin.object.prototype.GenericPythonSetAttr;
+
 Sk.builtin.object.prototype.ob$type = Sk.builtin.type.makeIntoTypeObj("object", Sk.builtin.object);
 
 /**
@@ -7828,7 +7908,7 @@ Sk.misceval.asIndex = function (o) {
 /**
  * return u[v:w]
  */
-Sk.misceval.applySlice = function (u, v, w) {
+Sk.misceval.applySlice = function (u, v, w, canSuspend) {
     var ihigh;
     var ilow;
     if (u.sq$slice && Sk.misceval.isIndex(v) && Sk.misceval.isIndex(w)) {
@@ -7842,14 +7922,14 @@ Sk.misceval.applySlice = function (u, v, w) {
         }
         return Sk.abstr.sequenceGetSlice(u, ilow, ihigh);
     }
-    return Sk.abstr.objectGetItem(u, new Sk.builtin.slice(v, w, null));
+    return Sk.abstr.objectGetItem(u, new Sk.builtin.slice(v, w, null), canSuspend);
 };
 goog.exportSymbol("Sk.misceval.applySlice", Sk.misceval.applySlice);
 
 /**
  * u[v:w] = x
  */
-Sk.misceval.assignSlice = function (u, v, w, x) {
+Sk.misceval.assignSlice = function (u, v, w, x, canSuspend) {
     var slice;
     var ihigh;
     var ilow;
@@ -7869,7 +7949,7 @@ Sk.misceval.assignSlice = function (u, v, w, x) {
             return Sk.abstr.objectDelItem(u, slice);
         }
         else {
-            return Sk.abstr.objectSetItem(u, slice, x);
+            return Sk.abstr.objectSetItem(u, slice, x, canSuspend);
         }
     }
 };
@@ -8510,10 +8590,12 @@ goog.exportSymbol("Sk.misceval.apply", Sk.misceval.apply);
  * Wraps anything that can return an Sk.misceval.Suspension, and returns a
  * JS Promise with the result. Also takes an object map of suspension handlers:
  * pass in {"suspType": function (susp) {} }, and your function will be called
- * with the Suspension object if susp.type=="suspType". A suspension handler
- * should return a Promise yielding the return value of r.resume() - ie,
- * either the final return value of this call or another Suspension. That is,
- * the null suspension handler is:
+ * with the Suspension object if susp.type=="suspType". The type "*" will match
+ * all otherwise unhandled suspensions.
+ *
+ * A suspension handler should return a Promise yielding the return value of
+ * r.resume() - ie, either the final return value of this call or another
+ * Suspension. That is, the null suspension handler is:
  *
  *     function handler(susp) {
  *       return new Promise(function(resolve, reject) {
@@ -8524,6 +8606,9 @@ goog.exportSymbol("Sk.misceval.apply", Sk.misceval.apply);
  *         }
  *       });
  *     }
+ *
+ * Alternatively, a handler can return null to perform the default action for
+ * that suspension type.
  *
  * (Note: do *not* call asyncToPromise() in a suspension handler; this will
  * create a new Promise object for each such suspension that occurs)
@@ -8565,13 +8650,17 @@ Sk.misceval.asyncToPromise = function(suspendablefn, suspHandlers) {
 
                     while (r instanceof Sk.misceval.Suspension) {
 
-                        var handler = suspHandlers && suspHandlers[r.data["type"]];
+                        var handler = suspHandlers && (suspHandlers[r.data["type"]] || suspHandlers["*"]);
 
                         if (handler) {
-                            handler(r).then(handleResponse, reject);
-                            return;
+                            var handlerPromise = handler(r);
+                            if (handlerPromise) {
+                                handlerPromise.then(handleResponse, reject);
+                                return;
+                            }
+                        }
 
-                        } else if (r.data["type"] == "Sk.promise") {
+                        if (r.data["type"] == "Sk.promise") {
                             r.data["promise"].then(resumeWithData, resumeWithError);
                             return;
 
@@ -8610,6 +8699,44 @@ Sk.misceval.applyAsync = function (suspHandlers, func, kwdict, varargseq, kws, a
 };
 goog.exportSymbol("Sk.misceval.applyAsync", Sk.misceval.applyAsync);
 
+/**
+ * Chain together a set of functions, each of which might return a value or
+ * an Sk.misceval.Suspension. Each function is called with the return value of
+ * the preceding function, but does not see any suspensions. If a function suspends,
+ * Sk.misceval.chain() returns a suspension that will resume the chain once an actual
+ * return value is available.
+ *
+ * The idea is to allow a Promise-like chaining of possibly-suspending steps without
+ * repeating boilerplate suspend-and-resume code.
+ *
+ * For example, imagine we call Sk.misceval.chain(x, f).
+ *  - If x is a value, we return f(x).
+ *  - If x is a suspension, we suspend. We will suspend and resume until we get a
+ *    return value, and then we will return f(<resumed-value).
+ * This can be expanded to an arbitrary number of functions
+ * (eg Sk.misceval.chain(x, f, g), which is equivalent to chain(chain(x, f), g).)
+ *
+ * @param {*}              initialValue
+ * @param {...function(*)} chainedFns
+ */
+
+Sk.misceval.chain = function (initialValue, chainedFns) {
+    var fs = arguments, i = 1;
+
+    return (function nextStep(r) {
+        while (i < fs.length) {
+            if (r instanceof Sk.misceval.Suspension) {
+                return new Sk.misceval.Suspension(nextStep, r);
+            }
+
+            r = fs[i](r);
+            i++;
+        }
+
+        return r;
+    })(initialValue);
+};
+goog.exportSymbol("Sk.misceval.chain", Sk.misceval.chain);
 
 /**
  * same as Sk.misceval.call except args is an actual array, rather than
@@ -8733,13 +8860,30 @@ Sk.misceval.buildClass = function (globals, func, name, bases) {
     var locals = {};
 
     // init the dict for the class
-    //print("CALLING", func);
     func(globals, locals, []);
+    // ToDo: check if func contains the __meta__ attribute
+    // or if the bases contain __meta__
+    // new Syntax would be different
 
     // file's __name__ is class's __module__
     locals.__module__ = globals["__name__"];
+    var _name = new Sk.builtin.str(name);
+    var _bases = new Sk.builtin.tuple(bases);
+    var _locals = [];
+    var key;
 
-    klass = Sk.misceval.callsim(meta, name, bases, locals);
+    // build array for python dict
+    for (key in locals) {
+        if (!locals.hasOwnProperty(key)) {
+            //The current property key not a direct property of p
+            continue;
+        }
+        _locals.push(new Sk.builtin.str(key)); // push key
+        _locals.push(locals[key]); // push associated value
+    }
+    _locals = new Sk.builtin.dict(_locals);
+
+    klass = Sk.misceval.callsim(meta, _name, _bases, _locals);
     return klass;
 };
 goog.exportSymbol("Sk.misceval.buildClass", Sk.misceval.buildClass);
@@ -9229,7 +9373,7 @@ Sk.abstr.sequenceGetCountOf = function (seq, ob) {
     throw new Sk.builtin.TypeError("argument of type '" + seqtypename + "' is not iterable");
 };
 
-Sk.abstr.sequenceGetItem = function (seq, i) {
+Sk.abstr.sequenceGetItem = function (seq, i, canSuspend) {
     var seqtypename;
     if (seq.mp$subscript) {
         return seq.mp$subscript(i);
@@ -9239,7 +9383,7 @@ Sk.abstr.sequenceGetItem = function (seq, i) {
     throw new Sk.builtin.TypeError("'" + seqtypename + "' object is unsubscriptable");
 };
 
-Sk.abstr.sequenceSetItem = function (seq, i, x) {
+Sk.abstr.sequenceSetItem = function (seq, i, x, canSuspend) {
     var seqtypename;
     if (seq.mp$ass_subscript) {
         return seq.mp$ass_subscript(i, x);
@@ -9387,17 +9531,17 @@ Sk.abstr.objectDelItem = function (o, key) {
 };
 goog.exportSymbol("Sk.abstr.objectDelItem", Sk.abstr.objectDelItem);
 
-Sk.abstr.objectGetItem = function (o, key) {
+Sk.abstr.objectGetItem = function (o, key, canSuspend) {
     var otypename;
     if (o !== null) {
         if (o.mp$subscript) {
-            return o.mp$subscript(key);
+            return o.mp$subscript(key, canSuspend);
         }
         else if (Sk.misceval.isIndex(key) && o.sq$item) {
-            return Sk.abstr.sequenceGetItem(o, Sk.misceval.asIndex(key));
+            return Sk.abstr.sequenceGetItem(o, Sk.misceval.asIndex(key), canSuspend);
         }
         else if (o.tp$getitem) {
-            return o.tp$getitem(key);
+            return o.tp$getitem(key, canSuspend);
         }
     }
 
@@ -9406,17 +9550,17 @@ Sk.abstr.objectGetItem = function (o, key) {
 };
 goog.exportSymbol("Sk.abstr.objectGetItem", Sk.abstr.objectGetItem);
 
-Sk.abstr.objectSetItem = function (o, key, v) {
+Sk.abstr.objectSetItem = function (o, key, v, canSuspend) {
     var otypename;
     if (o !== null) {
         if (o.mp$ass_subscript) {
-            return o.mp$ass_subscript(key, v);
+            return o.mp$ass_subscript(key, v, canSuspend);
         }
         else if (Sk.misceval.isIndex(key) && o.sq$ass_item) {
-            return Sk.abstr.sequenceSetItem(o, Sk.misceval.asIndex(key), v);
+            return Sk.abstr.sequenceSetItem(o, Sk.misceval.asIndex(key), v, canSuspend);
         }
         else if (o.tp$setitem) {
-            return o.tp$setitem(key, v);
+            return o.tp$setitem(key, v, canSuspend);
         }
     }
 
@@ -9426,8 +9570,8 @@ Sk.abstr.objectSetItem = function (o, key, v) {
 goog.exportSymbol("Sk.abstr.objectSetItem", Sk.abstr.objectSetItem);
 
 
-Sk.abstr.gattr = function (obj, nameJS) {
-    var ret;
+Sk.abstr.gattr = function (obj, nameJS, canSuspend) {
+    var ret, f;
     var objname = Sk.abstr.typeName(obj);
 
     if (obj === null) {
@@ -9435,28 +9579,56 @@ Sk.abstr.gattr = function (obj, nameJS) {
     }
 
 
-    if (obj["__getattr__"]) {
-        ret = Sk.misceval.callsim(obj["__getattr__"], obj, nameJS);
-    } else if (obj.tp$getattr !== undefined) {
-        ret = obj.tp$getattr(nameJS);
+    if (obj.tp$getattr !== undefined) {
+        f = obj.tp$getattr("__getattribute__");
     }
 
-    if (ret === undefined) {
-        throw new Sk.builtin.AttributeError("'" + objname + "' object has no attribute '" + nameJS + "'");
+    if (f !== undefined) {
+        ret = Sk.misceval.callsimOrSuspend(f, new Sk.builtin.str(nameJS));
     }
 
-    return ret;
+    ret = Sk.misceval.chain(ret, function(ret) {
+        var f;
+
+        if (ret === undefined && obj.tp$getattr !== undefined) {
+            ret = obj.tp$getattr(nameJS);
+
+            if (ret === undefined) {
+                f = obj.tp$getattr("__getattr__");
+
+                if (f !== undefined) {
+                    ret = Sk.misceval.callsimOrSuspend(f, new Sk.builtin.str(nameJS));
+                }
+            }
+        }
+        return ret;
+    }, function(r) {
+        if (r === undefined) {
+            throw new Sk.builtin.AttributeError("'" + objname + "' object has no attribute '" + nameJS + "'");
+        }
+        return r;
+    });
+
+    return canSuspend ? ret : Sk.misceval.retryOptionalSuspensionOrThrow(ret);
 };
 goog.exportSymbol("Sk.abstr.gattr", Sk.abstr.gattr);
 
-Sk.abstr.sattr = function (obj, nameJS, data) {
-    var objname = Sk.abstr.typeName(obj);
+Sk.abstr.sattr = function (obj, nameJS, data, canSuspend) {
+    var objname = Sk.abstr.typeName(obj), r, setf;
 
     if (obj === null) {
         throw new Sk.builtin.AttributeError("'" + objname + "' object has no attribute '" + nameJS + "'");
-    } else if (obj["__setattr__"]) {
-        Sk.misceval.callsim(obj["__setattr__"], obj, nameJS, data);
-    } else if (obj.tp$setattr !== undefined) {
+    }
+
+    if (obj.tp$getattr !== undefined) {
+        setf = obj.tp$getattr("__setattr__");
+        if (setf !== undefined) {
+            r = Sk.misceval.callsimOrSuspend(setf, new Sk.builtin.str(nameJS), data);
+            return canSuspend ? r : Sk.misceval.retryOptionalSuspensionOrThrow(r);
+        }
+    }
+
+    if (obj.tp$setattr !== undefined) {
         obj.tp$setattr(nameJS, data);
     } else {
         throw new Sk.builtin.AttributeError("'" + objname + "' object has no attribute '" + nameJS + "'");
@@ -9639,38 +9811,54 @@ Sk.mergeSort.stdCmp = new Sk.builtin.func(function (k0, k1) {
 /**
  * @constructor
  * @param {Array.<Object>=} L
+ * @param {boolean=} canSuspend (defaults to true in this case, as list() is used directly from Python)
  * @extends Sk.builtin.object
  */
-Sk.builtin.list = function (L) {
-    var it, i;
-    if (!(this instanceof Sk.builtin.list)) {
-        return new Sk.builtin.list(L);
+Sk.builtin.list = function (L, canSuspend) {
+    var v, it;
+
+    if (this instanceof Sk.builtin.list) {
+        canSuspend = false;
+    } else if (canSuspend === undefined) {
+        // Default to true in this case, because 'list' gets called directly from Python
+        canSuspend = true;
     }
 
     if (L === undefined) {
-        this.v = [];
+        v = [];
     }
     else if (Object.prototype.toString.apply(L) === "[object Array]") {
-        this.v = L;
+        v = L;
+    }
+    else if (L.tp$iter) {
+        v = [];
+        it = L.tp$iter();
+        return (function next(i) {
+            while(true) {
+                if (i instanceof Sk.misceval.Suspension) {
+                    return new Sk.misceval.Suspension(next, i);
+                } else if (i === undefined) {
+                    // done!
+                    return new Sk.builtin.list(v);
+                } else {
+                    v.push(i);
+                    i = it.tp$iternext(canSuspend);
+                }
+            }
+        })(it.tp$iternext(canSuspend));
     }
     else {
-        if (L.tp$iter) {
-            this.v = [];
-            for (it = L.tp$iter(), i = it.tp$iternext(); i !== undefined; i = it.tp$iternext()) {
-                this.v.push(i);
-            }
-        }
-        else {
-            throw new Sk.builtin.ValueError("expecting Array or iterable");
-        }
+        throw new Sk.builtin.ValueError("expecting Array or iterable");
     }
 
+    if (!(this instanceof Sk.builtin.list)) {
+        return new Sk.builtin.list(v);
+    }
     this.__class__ = Sk.builtin.list;
 
-    this["v"] = this.v;
+    this["v"] = this.v = v;
     return this;
 };
-
 
 Sk.builtin.list.prototype.ob$type = Sk.builtin.type.makeIntoTypeObj("list", Sk.builtin.list);
 
@@ -9705,7 +9893,7 @@ Sk.builtin.list.prototype.list_concat_ = function (other) {
     for (i = 0; i < other.v.length; ++i) {
         ret.push(other.v[i]);
     }
-    return new Sk.builtin.list(ret);
+    return new Sk.builtin.list(ret, false);
 };
 
 Sk.builtin.list.prototype.list_extend_ = function (other) {
@@ -9767,7 +9955,7 @@ Sk.builtin.list.prototype.list_ass_slice_ = function (ilow, ihigh, v) {
     ihigh = Sk.builtin.asnum$(ihigh);
 
     if (v.tp$iter) {
-        args = new Sk.builtin.list(v).v.slice(0);
+        args = new Sk.builtin.list(v, false).v.slice(0);
     } else {
         throw new Sk.builtin.TypeError("can only assign an iterable");
     }
@@ -9885,7 +10073,7 @@ Sk.builtin.list.prototype.sq$repeat = function (n) {
             ret.push(this.v[j]);
         }
     }
-    return new Sk.builtin.list(ret);
+    return new Sk.builtin.list(ret, false);
 };
 Sk.builtin.list.prototype.nb$multiply = Sk.builtin.list.prototype.sq$repeat;
 Sk.builtin.list.prototype.nb$inplace_multiply = Sk.builtin.list.prototype.sq$repeat;
@@ -9923,7 +10111,7 @@ Sk.builtin.list.prototype.list_subscript_ = function (index) {
         index.sssiter$(this, function (i, wrt) {
             ret.push(wrt.v[i]);
         });
-        return new Sk.builtin.list(ret);
+        return new Sk.builtin.list(ret, false);
     }
 
     throw new Sk.builtin.TypeError("list indices must be integers, not " + Sk.abstr.typeName(index));
@@ -10303,7 +10491,8 @@ Sk.builtin.str = function (x) {
     }
 
     // interning required for strings in py
-    if (Object.prototype.hasOwnProperty.call(interned, "1" + ret)) // note, have to use Object to avoid __proto__, etc. failing
+    if (Object.prototype.hasOwnProperty.call(interned, "1" + ret)) // note, have to use Object to avoid __proto__, etc.
+                                                               // failing
     {
         return interned["1" + ret];
     }
@@ -10541,7 +10730,7 @@ Sk.builtin.str.prototype["join"] = new Sk.builtin.func(function (self, seq) {
     arrOfStrs = [];
     for (it = seq.tp$iter(), i = it.tp$iternext(); i !== undefined; i = it.tp$iternext()) {
         if (i.constructor !== Sk.builtin.str) {
-            throw "TypeError: sequence item " + arrOfStrs.length + ": expected string, " + typeof i + " found";
+            throw new Sk.builtin.TypeError("TypeError: sequence item " + arrOfStrs.length + ": expected string, " + typeof i + " found");
         }
         arrOfStrs.push(i.v);
     }
@@ -10581,7 +10770,7 @@ Sk.builtin.str.prototype["split"] = new Sk.builtin.func(function (self, on, howm
         regex = new RegExp(s, "g");
     }
 
-    // This is almost identical to re.split, 
+    // This is almost identical to re.split,
     // except how the regexp is constructed
 
     result = [];
@@ -10944,20 +11133,152 @@ Sk.builtin.str.prototype["replace"] = new Sk.builtin.func(function (self, oldS, 
     return new Sk.builtin.str(self.v.replace(patt, replacer));
 });
 
+Sk.builtin.str.prototype["zfill"] = new Sk.builtin.func(function (self, len) {
+    var str = self.v;
+    var ret;
+    var zeroes;
+    var offset;
+    var pad = "";
+
+    Sk.builtin.pyCheckArgs("zfill", arguments, 2, 2);
+    if (! Sk.builtin.checkInt(len)) {
+        throw new Sk.builtin.TypeError("integer argument exepected, got " + Sk.abstr.typeName(len));
+    }
+
+    // figure out how many zeroes are needed to make the proper length
+    zeroes = len.v - str.length;
+    // offset by 1 if there is a +/- at the beginning of the string
+    offset = (str[0] === "+" || str[0] === "-") ? 1 : 0;
+    for(var i = 0; i < zeroes; i++){
+        pad += "0";
+    }
+    // combine the string and the zeroes
+    ret = str.substr(0, offset) + pad + str.substr(offset);
+    return new Sk.builtin.str(ret);
+
+
+});
+
 Sk.builtin.str.prototype["isdigit"] = new Sk.builtin.func(function (self) {
-    var ch;
-    var i;
     Sk.builtin.pyCheckArgs("isdigit", arguments, 1, 1);
-    if (self.v.length === 0) {
-        return Sk.builtin.bool(false);
+    return Sk.builtin.bool(/^\d+$/.test(self.v));
+});
+
+Sk.builtin.str.prototype["isspace"] = new Sk.builtin.func(function (self) {
+    Sk.builtin.pyCheckArgs("isspace", arguments, 1, 1);
+    return Sk.builtin.bool(/^\s+$/.test(self.v));
+});
+
+
+Sk.builtin.str.prototype["expandtabs"] = new Sk.builtin.func(function (self, tabsize) {
+    // var input = self.v;
+    // var expanded = "";
+    // var split;
+    // var spacestr = "";
+    // var spacerem;
+
+
+    var spaces;
+    var expanded;
+
+    Sk.builtin.pyCheckArgs("expandtabs", arguments, 1, 2);
+
+
+    if ((tabsize !== undefined) && ! Sk.builtin.checkInt(tabsize)) {
+        throw new Sk.builtin.TypeError("integer argument exepected, got " + Sk.abstr.typeName(tabsize));
     }
-    for (i = 0; i < self.v.length; i++) {
-        ch = self.v.charAt(i);
-        if (ch < "0" || ch > "9") {
-            return Sk.builtin.bool(false);
+    if (tabsize === undefined) {
+        tabsize = 8;
+    }
+    else {
+        tabsize = Sk.builtin.asnum$(tabsize);
+    }
+
+    spaces = (new Array(tabsize + 1)).join(" ");
+    expanded = self.v.replace(/([^\r\n\t]*)\t/g, function(a, b) {
+        return b + spaces.slice(b.length % tabsize);
+    });
+    return new Sk.builtin.str(expanded);
+});
+
+Sk.builtin.str.prototype["swapcase"] = new Sk.builtin.func(function (self) {
+    var ret;
+    Sk.builtin.pyCheckArgs("swapcase", arguments, 1, 1);
+
+
+    ret = self.v.replace(/[a-z]/gi, function(c) {
+        var lc = c.toLowerCase();
+        return lc === c ? c.toUpperCase() : lc;
+    });
+
+    return new Sk.builtin.str(ret);
+});
+
+Sk.builtin.str.prototype["splitlines"] = new Sk.builtin.func(function (self, keepends) {
+    var data = self.v;
+    var i = 0;
+    var j = i;
+    var selflen = self.v.length;
+    var strs_w = [];
+    var ch;
+    var eol;
+    var sol = 0;
+    var slice;
+    Sk.builtin.pyCheckArgs("splitlines", arguments, 1, 2);
+    if ((keepends !== undefined) && ! Sk.builtin.checkBool(keepends)) {
+        throw new Sk.builtin.TypeError("boolean argument expected, got " + Sk.abstr.typeName(keepends));
+    }
+    if (keepends === undefined) {
+        keepends = false;
+    }
+    else {
+        keepends = keepends.v;
+    }
+
+
+    for (i = 0; i < selflen; i ++) {
+        ch = data.charAt(i);
+        if (data.charAt(i + 1) === "\n" && ch === "\r") {
+            eol = i + 2;
+            slice = data.slice(sol, eol);
+            if (! keepends) {
+                slice = slice.replace(/(\r|\n)/g, "");
+            }
+            strs_w.push(new Sk.builtin.str(slice));
+            sol = eol;
         }
+        else if ((ch === "\n" && data.charAt(i - 1) !== "\r") || ch === "\r") {
+            eol = i + 1;
+            slice = data.slice(sol, eol);
+            if (! keepends) {
+                slice = slice.replace(/(\r|\n)/g, "");
+            }
+            strs_w.push(new Sk.builtin.str(slice));
+            sol = eol;
+        }
+
     }
-    return Sk.builtin.bool(true);
+    if (sol < selflen) {
+        eol = selflen;
+        slice = data.slice(sol, eol);
+        if (! keepends) {
+            slice = slice.replace(/(\r|\n)/g, "");
+        }
+        strs_w.push(new Sk.builtin.str(slice));
+    }
+    return new Sk.builtin.list(strs_w);
+});
+
+Sk.builtin.str.prototype["title"] = new Sk.builtin.func(function (self) {
+    var ret;
+
+    Sk.builtin.pyCheckArgs("title", arguments, 1, 1);
+
+    ret = self.v.replace(/[a-z][a-z]*/gi, function(str) {
+        return str[0].toUpperCase() + str.substr(1).toLowerCase();
+    });
+
+    return new Sk.builtin.str(ret);
 });
 
 Sk.builtin.str.prototype["isalpha"] = new Sk.builtin.func(function (self) {
@@ -10986,6 +11307,37 @@ Sk.builtin.str.prototype["isupper"] = new Sk.builtin.func(function (self) {
     return Sk.builtin.bool(self.v.length && !/[a-z]/.test(self.v) && /[A-Z]/.test(self.v));
 });
 
+Sk.builtin.str.prototype["istitle"] = new Sk.builtin.func(function (self) {
+    // Comparing to str.title() seems the most intuitive thing, but it fails on "",
+    // Other empty-ish strings with no change.
+    var input = self.v;
+    var cased = false;
+    var previous_is_cased = false;
+    var pos;
+    var ch;
+    Sk.builtin.pyCheckArgs("istitle", arguments, 1, 1);
+    for (pos = 0; pos < input.length; pos ++) {
+        ch = input.charAt(pos);
+        if (! /[a-z]/.test(ch) && /[A-Z]/.test(ch)) {
+            if (previous_is_cased) {
+                return Sk.builtin.bool(false);
+            }
+            previous_is_cased = true;
+            cased = true;
+        }
+        else if (/[a-z]/.test(ch) && ! /[A-Z]/.test(ch)) {
+            if (! previous_is_cased) {
+                return Sk.builtin.bool(false);
+            }
+            cased = true;
+        }
+        else {
+            previous_is_cased = false;
+        }
+    }
+    return Sk.builtin.bool(cased);
+});
+
 Sk.builtin.str.prototype.ob$type = Sk.builtin.type.makeIntoTypeObj("str", Sk.builtin.str);
 
 Sk.builtin.str.prototype.nb$remainder = function (rhs) {
@@ -10996,12 +11348,11 @@ Sk.builtin.str.prototype.nb$remainder = function (rhs) {
     // 1. The '%' character, which marks the start of the specifier.
     // 2. Mapping key (optional), consisting of a parenthesised sequence of characters (for example, (somename)).
     // 3. Conversion flags (optional), which affect the result of some conversion types.
-    // 4. Minimum field width (optional). If specified as an '*' (asterisk), the actual width is read from the next element of the tuple in values, and the object to convert comes after the minimum field width and optional precision.
-    // 5. Precision (optional), given as a '.' (dot) followed by the precision. If specified as '*' (an asterisk), the actual width is read from the next element of the tuple in values, and the value to convert comes after the precision.
-    // 6. Length modifier (optional).
-    // 7. Conversion type.
-    //
-    // length modifier is ignored
+    // 4. Minimum field width (optional). If specified as an '*' (asterisk), the actual width is read from the next
+    // element of the tuple in values, and the object to convert comes after the minimum field width and optional
+    // precision. 5. Precision (optional), given as a '.' (dot) followed by the precision. If specified as '*' (an
+    // asterisk), the actual width is read from the next element of the tuple in values, and the value to convert comes
+    // after the precision. 6. Length modifier (optional). 7. Conversion type.  length modifier is ignored
 
     var ret;
     var replFunc;
@@ -11167,10 +11518,13 @@ Sk.builtin.str.prototype.nb$remainder = function (rhs) {
         if (rhs.constructor === Sk.builtin.tuple) {
             value = rhs.v[i];
         }
-        else if (rhs.mp$subscript !== undefined) {
+        else if (rhs.mp$subscript !== undefined && mappingKey !== undefined) {
             mk = mappingKey.substring(1, mappingKey.length - 1);
             //print("mk",mk);
             value = rhs.mp$subscript(new Sk.builtin.str(mk));
+        } else if (rhs.constructor === Sk.builtin.dict || rhs.constructor === Sk.builtin.list) {
+            // new case where only one argument is provided
+            value = rhs;
         }
         else {
             throw new Sk.builtin.AttributeError(rhs.tp$name + " instance has no attribute 'mp$subscript'");
@@ -11238,6 +11592,9 @@ Sk.builtin.str.prototype.nb$remainder = function (rhs) {
             r = new Sk.builtin.str(value);
             if (precision) {
                 return r.v.substr(0, precision);
+            }
+            if(fieldWidth) {
+                r.v = handleWidth([" ", r.v]);
             }
             return r.v;
         } else if (conversionType === "%") {
@@ -16470,7 +16827,7 @@ Sk.builtin.enumerate.prototype["__iter__"] = new Sk.builtin.func(function (self)
 
 Sk.builtin.enumerate.prototype["next"] = new Sk.builtin.func(function (self) {
     return self.tp$iternext();
-});								 
+});
 /*
  * This is a port of tokenize.py by Ka-Ping Yee.
  *
@@ -23462,8 +23819,7 @@ Compiler.prototype.annotateSource = function (ast) {
         }
         out("^\n//\n");
 
-        out("\nSk.currLineNo = ", lineno, ";\nSk.currColNo = ", col_offset, "\n\n");	//	Added by RNL
-        out("\nSk.currFilename = '", this.filename, "';\n\n");	//	Added by RNL
+        out("currLineNo = ", lineno, ";\ncurrColNo = ", col_offset, "\n\n");
     }
 };
 
@@ -23630,7 +23986,7 @@ Compiler.prototype.outputInterruptTest = function () { // Added by RNL
     }
     if (Sk.yieldLimit !== null && this.u.canSuspend) {
         output += "if (new Date() - Sk.lastYield > Sk.yieldLimit) {";
-        output += "var $susp = $saveSuspension({data: {type: 'Sk.yield'}, resume: function() {}}, '"+this.filename+"',Sk.currLineNo,Sk.currColNo);";
+        output += "var $susp = $saveSuspension({data: {type: 'Sk.yield'}, resume: function() {}}, '"+this.filename+"',currLineNo,currColNo);";
         output += "$susp.$blk = $blk;";
         output += "$susp.optional = true;";
         output += "return $susp;";
@@ -23661,6 +24017,28 @@ Compiler.prototype._jump = function (block) {
     }
 };
 
+/**
+ * @param {Object=} e Object with keys 'lineno' and 'col_offset'
+ */
+Compiler.prototype._checkSuspension = function(e) {
+    var retblk;
+    if (this.u.canSuspend) {
+
+        retblk = this.newBlock("function return or resume suspension");
+        this._jump(retblk);
+        this.setBlock(retblk);
+
+        e = e || {lineno: "currLineNo", col_offset: "currColNo"};
+
+        out ("if ($ret instanceof Sk.misceval.Suspension) { return $saveSuspension($ret,'"+this.filename+"',"+e.lineno+","+e.col_offset+"); }");
+
+        this.u.doesSuspend = true;
+        this.u.tempsToSave = this.u.tempsToSave.concat(this.u.localtemps);
+
+    } else {
+        out ("if ($ret instanceof Sk.misceval.Suspension) { $ret = Sk.misceval.retryOptionalSuspensionOrThrow($ret); }");
+    }
+};
 Compiler.prototype.ctuplelistorset = function(e, data, tuporlist) {
     var i;
     var items;
@@ -23670,7 +24048,7 @@ Compiler.prototype.ctuplelistorset = function(e, data, tuporlist) {
             this.vexpr(e.elts[i], "Sk.abstr.objectGetItem(" + data + "," + i + ")");
         }
     }
-    else if (e.ctx === Load || tuporlist === "set") { //because set's can't be assigned to. 
+    else if (e.ctx === Load || tuporlist === "set") { //because set's can't be assigned to.
         items = [];
         for (i = 0; i < e.elts.length; ++i) {
             items.push(this._gr("elem", this.vexpr(e.elts[i])));
@@ -23696,22 +24074,22 @@ Compiler.prototype.cdict = function (e) {
 Compiler.prototype.clistcomp = function(e) {
     goog.asserts.assert(e instanceof ListComp);
     var tmp = this._gr("_compr", "new Sk.builtins['list']([])"); // note: _ is impt. for hack in name mangling (same as cpy)
-    return this.ccompgen("list", tmp, e.generators, 0, e.elt, null);
+    return this.ccompgen("list", tmp, e.generators, 0, e.elt, null, e);
 };
 
 Compiler.prototype.cdictcomp = function(e) {
     goog.asserts.assert(e instanceof DictComp);
     var tmp = this._gr("_dcompr", "new Sk.builtins.dict([])");
-    return this.ccompgen("dict", tmp, e.generators, 0, e.value, e.key);
+    return this.ccompgen("dict", tmp, e.generators, 0, e.value, e.key, e);
 };
 
 Compiler.prototype.csetcomp = function(e) {
     goog.asserts.assert(e instanceof SetComp);
     var tmp = this._gr("_setcompr", "new Sk.builtins.set([])");
-    return this.ccompgen("set", tmp, e.generators, 0, e.elt, null);
+    return this.ccompgen("set", tmp, e.generators, 0, e.elt, null, e);
 };
 
-Compiler.prototype.ccompgen = function (type, tmpname, generators, genIndex, value, key) {
+Compiler.prototype.ccompgen = function (type, tmpname, generators, genIndex, value, key, e) {
     var start = this.newBlock(type + " comp start");
     var skip = this.newBlock(type + " comp skip");
     var anchor = this.newBlock(type + " comp anchor");
@@ -23726,12 +24104,16 @@ Compiler.prototype.ccompgen = function (type, tmpname, generators, genIndex, val
     var target;
     var nexti;
     var n;
-    
+
     this._jump(start);
     this.setBlock(start);
 
     // load targets
-    nexti = this._gr("next", "Sk.abstr.iternext(", iter, ")");
+    out("$ret = Sk.abstr.iternext(", iter, ", true);");
+
+    this._checkSuspension(e);
+
+    nexti = this._gr("next", "$ret");
     this._jumpundef(nexti, anchor); // todo; this should be handled by StopIteration
     target = this.vexpr(l.target, nexti);
 
@@ -23742,7 +24124,7 @@ Compiler.prototype.ccompgen = function (type, tmpname, generators, genIndex, val
     }
 
     if (++genIndex < generators.length) {
-        this.ccompgen(type, tmpname, generators, genIndex, value, key);
+        this.ccompgen(type, tmpname, generators, genIndex, value, key, e);
     }
 
     if (genIndex >= generators.length) {
@@ -23750,10 +24132,10 @@ Compiler.prototype.ccompgen = function (type, tmpname, generators, genIndex, val
         if (type === "dict") {
             lkey = this.vexpr(key);
             out(tmpname, ".mp$ass_subscript(", lkey, ",", lvalue, ");");
-        } 
+        }
         else if (type === "list") {
             out(tmpname, ".v.push(", lvalue, ");"); // todo;
-        } 
+        }
         else if (type === "set") {
             out(tmpname, ".v.mp$ass_subscript(", lvalue, ", true);");
         }
@@ -23819,7 +24201,6 @@ Compiler.prototype.ccall = function (e) {
     var kwarray;
     var func = this.vexpr(e.func);
     var args = this.vseqexpr(e.args);
-    var retblk;
 
     //print(JSON.stringify(e, null, 2));
     if (e.keywords.length > 0 || e.starargs || e.kwargs) {
@@ -23845,20 +24226,7 @@ Compiler.prototype.ccall = function (e) {
         out ("$ret = Sk.misceval.callsimOrSuspend(", func, args.length > 0 ? "," : "", args, ");");
     }
 
-    if (this.u.canSuspend) {
-
-        retblk = this.newBlock("function return or resume suspension");
-        this._jump(retblk);
-        this.setBlock(retblk);
-
-        out ("if ($ret instanceof Sk.misceval.Suspension) { return $saveSuspension($ret,'"+this.filename+"',"+e.lineno+","+e.col_offset+"); }");
-
-        this.u.doesSuspend = true;
-        this.u.tempsToSave = this.u.tempsToSave.concat(this.u.localtemps);
-
-    } else {
-        out ("if ($ret instanceof Sk.misceval.Suspension) { $ret = Sk.misceval.retryOptionalSuspensionOrThrow($ret); }");
-    }
+    this._checkSuspension(e);
 
     return this._gr("call", "$ret");
 };
@@ -23888,11 +24256,6 @@ Compiler.prototype.eslice = function (dims) {
 Compiler.prototype.vslicesub = function (s) {
     var subs;
     switch (s.constructor) {
-        case Number:
-        case String:
-            // Already compiled, should only happen for augmented assignments
-            subs = s;
-            break;
         case Index:
             subs = this.vexpr(s.value);
             break;
@@ -23918,10 +24281,13 @@ Compiler.prototype.vslice = function (s, ctx, obj, dataToStore) {
 
 Compiler.prototype.chandlesubscr = function (ctx, obj, subs, data) {
     if (ctx === Load || ctx === AugLoad) {
-        return this._gr("lsubscr", "Sk.abstr.objectGetItem(", obj, ",", subs, ")");
+        out("$ret = Sk.abstr.objectGetItem(", obj, ",", subs, ", true);");
+        this._checkSuspension();
+        return this._gr("lsubscr", "$ret");
     }
     else if (ctx === Store || ctx === AugStore) {
-        out("Sk.abstr.objectSetItem(", obj, ",", subs, ",", data, ");");
+        out("$ret = Sk.abstr.objectSetItem(", obj, ",", subs, ",", data, ", true);");
+        this._checkSuspension();
     }
     else if (ctx === Del) {
         out("Sk.abstr.objectDelItem(", obj, ",", subs, ");");
@@ -23972,10 +24338,12 @@ Compiler.prototype.cboolop = function (e) {
  *
  * @param {Object} e
  * @param {string=} data data to store in a store operation
- * @param {Object=} augstoreval value to store to for an aug operation (not
- * vexpr'd yet)
+ * @param {Object=} augvar var to load/store to for augmented assignments like '+='.
+ *                  (already vexpr'ed, so we can evaluate it once and reuse for both load and store ops)
+ * @param {Object=} augsubs precomputed subscript for augmented assignments like '+='.
+ *                  (already vexpr'ed, so we can evaluate it once and reuse for both load and store ops)
  */
-Compiler.prototype.vexpr = function (e, data, augstoreval) {
+Compiler.prototype.vexpr = function (e, data, augvar, augsubs) {
     var mangled;
     var val;
     var result;
@@ -24028,7 +24396,7 @@ Compiler.prototype.vexpr = function (e, data, augstoreval) {
         case Str:
             return this._gr("str", "new Sk.builtins['str'](", e.s["$r"]().v, ")");
         case Attribute:
-            if (e.ctx !== AugStore) {
+            if (e.ctx !== AugLoad && e.ctx !== AugStore) {
                 val = this.vexpr(e.value);
             }
             mangled = e.attr["$r"]().v;
@@ -24038,16 +24406,26 @@ Compiler.prototype.vexpr = function (e, data, augstoreval) {
             mangled = fixReservedNames(mangled);
             switch (e.ctx) {
                 case AugLoad:
+                    out("$ret = Sk.abstr.gattr(", augvar, ",'", mangled, "', true);");
+                    this._checkSuspension(e);
+                    return this._gr("lattr", "$ret");
                 case Load:
-                    return this._gr("lattr", "Sk.abstr.gattr(", val, ",'", mangled, "')");
+                    out("$ret = Sk.abstr.gattr(", val, ",'", mangled, "', true);");
+                    this._checkSuspension(e);
+                    return this._gr("lattr", "$ret");
                 case AugStore:
-                    out("if(", data, "!==undefined){"); // special case to avoid re-store if inplace worked
-                    val = this.vexpr(augstoreval || null); // the || null can never happen, but closure thinks we can get here with it being undef
-                    out("Sk.abstr.sattr(", val, ",'", mangled, "',", data, ");");
+                    // To be more correct, we shouldn't sattr() again if the in-place update worked.
+                    // At the time of writing (26/Feb/2015), Sk.abstr.numberInplaceBinOp never returns undefined,
+                    // so this will never *not* execute. But it could, if Sk.abstr.numberInplaceBinOp were fixed.
+                    out("$ret = undefined;");
+                    out("if(", data, "!==undefined){");
+                    out("$ret = Sk.abstr.sattr(", augvar, ",'", mangled, "',", data, ", true);");
                     out("}");
+                    this._checkSuspension(e);
                     break;
                 case Store:
-                    out("Sk.abstr.sattr(", val, ",'", mangled, "',", data, ");");
+                    out("$ret = Sk.abstr.sattr(", val, ",'", mangled, "',", data, ", true);");
+                    this._checkSuspension(e);
                     break;
                 case Del:
                     goog.asserts.fail("todo Del;");
@@ -24060,15 +24438,23 @@ Compiler.prototype.vexpr = function (e, data, augstoreval) {
         case Subscript:
             switch (e.ctx) {
                 case AugLoad:
+                    out("$ret = Sk.abstr.objectGetItem(",augvar,",",augsubs,", true);");
+                    this._checkSuspension(e)
+                    return this._gr("gitem", "$ret");
                 case Load:
                 case Store:
                 case Del:
                     return this.vslice(e.slice, e.ctx, this.vexpr(e.value), data);
                 case AugStore:
-                    out("if(", data, "!==undefined){"); // special case to avoid re-store if inplace worked
-                    val = this.vexpr(augstoreval || null); // the || null can never happen, but closure thinks we can get here with it being undef
-                    this.vslice(e.slice, e.ctx, val, data);
+                    // To be more correct, we shouldn't sattr() again if the in-place update worked.
+                    // At the time of writing (26/Feb/2015), Sk.abstr.numberInplaceBinOp never returns undefined,
+                    // so this will never *not* execute. But it could, if Sk.abstr.numberInplaceBinOp were fixed.
+
+                    out("$ret=undefined;");
+                    out("if(", data, "!==undefined){");
+                    out("$ret=Sk.abstr.objectSetItem(",augvar,",",augsubs,",",data,", true)");
                     out("}");
+                    this._checkSuspension(e);
                     break;
                 case Param:
                 default:
@@ -24115,21 +24501,23 @@ Compiler.prototype.caugassign = function (s) {
     e = s.target;
     switch (e.constructor) {
         case Attribute:
+            to = this.vexpr(e.value);
             auge = new Attribute(e.value, e.attr, AugLoad, e.lineno, e.col_offset);
-            aug = this.vexpr(auge);
+            aug = this.vexpr(auge, undefined, to);
             val = this.vexpr(s.value);
             res = this._gr("inplbinopattr", "Sk.abstr.numberInplaceBinOp(", aug, ",", val, ",'", s.op.prototype._astname, "')");
             auge.ctx = AugStore;
-            return this.vexpr(auge, res, e.value);
+            return this.vexpr(auge, res, to);
         case Subscript:
             // Only compile the subscript value once
+            to = this.vexpr(e.value);
             augsub = this.vslicesub(e.slice);
             auge = new Subscript(e.value, augsub, AugLoad, e.lineno, e.col_offset);
-            aug = this.vexpr(auge);
+            aug = this.vexpr(auge, undefined, to, augsub);
             val = this.vexpr(s.value);
             res = this._gr("inplbinopsubscr", "Sk.abstr.numberInplaceBinOp(", aug, ",", val, ",'", s.op.prototype._astname, "')");
             auge.ctx = AugStore;
-            return this.vexpr(auge, res, e.value);
+            return this.vexpr(auge, res, to, augsub);
         case Name:
             to = this.nameop(e.id, Load);
             val = this.vexpr(s.value);
@@ -24242,7 +24630,7 @@ Compiler.prototype.outputSuspensionHelpers = function (unit) {
     var output = "var $wakeFromSuspension = function() {" +
                     "var susp = "+unit.scopename+".wakingSuspension; delete "+unit.scopename+".wakingSuspension;" +
                     "$blk=susp.$blk; $loc=susp.$loc; $gbl=susp.$gbl; $exc=susp.$exc; $err=susp.$err;" +
-                    "Sk.lastYield=new Date();" +
+                    "currLineNo=susp.lineno; currColNo=susp.colno; Sk.lastYield=new Date();" +
                     (hasCell?"$cell=susp.$cell;":"");
 
     for (i = 0; i < localsToSave.length; i++) {
@@ -24253,7 +24641,7 @@ Compiler.prototype.outputSuspensionHelpers = function (unit) {
         }
     }
 
-    output +=  "try { $ret=susp.child.resume(); } catch(err) { if($exc.length>0) { $err=err; $blk=$exc.pop(); } else { throw err; } }" +
+    output +=  "try { $ret=susp.child.resume(); } catch(err) { if (!(err instanceof Sk.builtin.Exception)) { err = new Sk.builtin.ExternalError(err); } err.traceback.push({lineno: currLineNo, colno: currColNo, filename: '"+this.filename+"'}); if($exc.length>0) { $err=err; $blk=$exc.pop(); } else { throw err; } }" +
                 "};";
 
     output += "var $saveSuspension = function(child, filename, lineno, colno) {" +
@@ -24420,7 +24808,6 @@ Compiler.prototype.cfor = function (s) {
     var iter;
     var toiter;
     var start = this.newBlock("for start");
-    var body;
     var cleanup = this.newBlock("for cleanup");
     var end = this.newBlock("for end");
 
@@ -24446,18 +24833,8 @@ Compiler.prototype.cfor = function (s) {
 
     // load targets
     out ("$ret = Sk.abstr.iternext(", iter,(this.u.canSuspend?", true":", false"),");");
-    if (this.u.canSuspend) {
-        this.u.doesSuspend = true;
 
-        body = this.newBlock("for body");
-        this._jump(body);
-
-        this.setBlock(body);
-
-        out ("if ($ret instanceof Sk.misceval.Suspension) { return $saveSuspension($ret, '"+this.filename+"',"+s.lineno+","+s.col_offset+"); }");
-    } else {
-        out ("if ($ret instanceof Sk.misceval.Suspension) { $ret = Sk.misceval.retryOptionalSuspensionOrThrow($ret, 'Generator blocked/suspended, which is not permitted here'); }");
-    }
+    this._checkSuspension(s);
 
     nexti = this._gr("next", "$ret");
     this._jumpundef(nexti, cleanup); // todo; this should be handled by StopIteration
@@ -24636,7 +25013,11 @@ Compiler.prototype.cimport = function (s) {
     var n = s.names.length;
     for (i = 0; i < n; ++i) {
         alias = s.names[i];
-        mod = this._gr("module", "Sk.builtin.__import__(", alias.name["$r"]().v, ",$gbl,$loc,[])");
+        out("$ret = Sk.builtin.__import__(", alias.name["$r"]().v, ",$gbl,$loc,[]);");
+
+        this._checkSuspension(s);
+
+        mod = this._gr("module", "$ret");
 
         if (alias.asname) {
             this.cimportas(alias.name, alias.asname, mod);
@@ -24663,7 +25044,13 @@ Compiler.prototype.cfromimport = function (s) {
     for (i = 0; i < n; ++i) {
         names[i] = s.names[i].name["$r"]().v;
     }
-    mod = this._gr("module", "Sk.builtin.__import__(", s.module["$r"]().v, ",$gbl,$loc,[", names, "])");
+    out("$ret = Sk.builtin.__import__(", s.module["$r"]().v, ",$gbl,$loc,[", names, "]);");
+
+    this._checkSuspension(s);
+
+    //out("print('__import__ returned ' + $ret);");
+    //out("for (var x in $ret) { print(x); }");
+    mod = this._gr("module", "$ret");
     for (i = 0; i < n; ++i) {
         alias = s.names[i];
         if (i === 0 && alias.name.v === "*") {
@@ -24672,7 +25059,9 @@ Compiler.prototype.cfromimport = function (s) {
             return;
         }
 
+        //out("print(\"getting Sk.abstr.gattr(", mod, ",", alias.name["$r"]().v, ")\");");
         got = this._gr("item", "Sk.abstr.gattr(", mod, ",", alias.name["$r"]().v, ")");
+        //out("print('got');");
         storeName = alias.name;
         if (alias.asname) {
             storeName = alias.asname;
@@ -24818,7 +25207,7 @@ Compiler.prototype.buildcodeobj = function (n, coname, decorator_list, args, cal
 
     // note special usage of 'this' to avoid having to slice globals into
     // all function invocations in call
-    this.u.varDeclsCode += "var $blk=" + entryBlock + ",$exc=[],$loc=" + locals + cells + ",$gbl=this,$err=undefined,$ret=undefined;";
+    this.u.varDeclsCode += "var $blk=" + entryBlock + ",$exc=[],$loc=" + locals + cells + ",$gbl=this,$err=undefined,$ret=undefined,currLineNo=undefined,currColNo=undefined;";
     if (Sk.execLimit !== null) {
         this.u.varDeclsCode += "if (typeof Sk.execStart === 'undefined') {Sk.execStart = new Date()}";
     }
@@ -24904,7 +25293,7 @@ Compiler.prototype.buildcodeobj = function (n, coname, decorator_list, args, cal
     this.u.switchCode = "while(true){try{"
     this.u.switchCode += this.outputInterruptTest();
     this.u.switchCode += "switch($blk){";
-    this.u.suffixCode = "} }catch(err){if ($exc.length>0) { $err = err; $blk=$exc.pop(); continue; } else { throw err; }} }});";
+    this.u.suffixCode = "} }catch(err){ if (!(err instanceof Sk.builtin.Exception)) { err = new Sk.builtin.ExternalError(err); } err.traceback.push({lineno: currLineNo, colno: currColNo, filename: '"+this.filename+"'}); if ($exc.length>0) { $err = err; $blk=$exc.pop(); continue; } else { throw err; }} }});";
 
     //
     // jump back to the handler so it can do the main actual work of the
@@ -25135,7 +25524,7 @@ Compiler.prototype.cclass = function (s) {
 
     this.u.prefixCode = "var " + scopename + "=(function $" + s.name.v + "$class_outer($globals,$locals,$rest){var $gbl=$globals,$loc=$locals;";
     this.u.switchCode += "return(function " + s.name.v + "(){";
-    this.u.switchCode += "var $blk=" + entryBlock + ",$exc=[],$ret=undefined;"
+    this.u.switchCode += "var $blk=" + entryBlock + ",$exc=[],$ret=undefined,currLineNo=undefined,currColNo=undefined;"
     if (Sk.execLimit !== null) {
         this.u.switchCode += "if (typeof Sk.execStart === 'undefined') {Sk.execStart = new Date()}";
     }
@@ -25384,7 +25773,7 @@ Compiler.prototype.nameop = function (name, ctx, dataToStore) {
                 case Load:
                 case Param:
                     // Need to check that it is bound!
-                    out("if (", mangled, " === undefined) { throw new Error('local variable \\\'", mangled, "\\\' referenced before assignment'); }\n");
+                    out("if (", mangled, " === undefined) { throw new Sk.builtin.UnboundLocalError('local variable \\\'", mangled, "\\\' referenced before assignment'); }\n");
                     return mangled;
                 case Store:
                     out(mangled, "=", dataToStore, ";");
@@ -25532,7 +25921,7 @@ Compiler.prototype.cmod = function (mod) {
 
     var entryBlock = this.newBlock("module entry");
     this.u.prefixCode = "var " + modf + "=(function($modname){";
-    this.u.varDeclsCode = "var $gbl = {}, $blk=" + entryBlock + ",$exc=[],$loc=$gbl,$err=undefined;$gbl.__name__=$modname,$ret=undefined;";
+    this.u.varDeclsCode = "var $gbl = {}, $blk=" + entryBlock + ",$exc=[],$loc=$gbl,$err=undefined;$gbl.__name__=$modname,$ret=undefined,currLineNo=undefined,currColNo=undefined;";
     if (Sk.execLimit !== null) {
         this.u.varDeclsCode += "if (typeof Sk.execStart === 'undefined') {Sk.execStart = new Date()}";
     }
@@ -25560,7 +25949,7 @@ Compiler.prototype.cmod = function (mod) {
     this.u.switchCode = "while(true){try{";
     this.u.switchCode += this.outputInterruptTest();
     this.u.switchCode += "switch($blk){";
-    this.u.suffixCode = "} }catch(err){if ($exc.length>0) { $err = err; $blk=$exc.pop(); continue; } else { throw err; }} }" +
+    this.u.suffixCode = "} }catch(err){ if (!(err instanceof Sk.builtin.Exception)) { err = new Sk.builtin.ExternalError(err); } err.traceback.push({lineno: currLineNo, colno: currColNo, filename: '"+this.filename+"'}); if ($exc.length>0) { $err = err; $blk=$exc.pop(); continue; } else { throw err; }} }" +
         " }catch(err){ if (err instanceof Sk.builtin.SystemExit && !Sk.throwSystemExit) { Sk.misceval.print_(err.toString() + '\\n'); return $loc; } else { throw err; } } });";
 
     // Note - this change may need to be adjusted for all the other instances of
@@ -25726,38 +26115,67 @@ Sk.loadExternalLibrary = function (name) {
  * @param {string} name to look for
  * @param {string} ext extension to use (.py or .js)
  * @param {boolean=} failok will throw if not true
+ * @param {boolean=} canSuspend can we suspend?
  */
-Sk.importSearchPathForName = function (name, ext, failok) {
+Sk.importSearchPathForName = function (name, ext, failok, canSuspend) {
     var fn;
     var j;
-    var fns;
-    var nameAsPath;
-    var it, i;
+    var fns = [];
+    var nameAsPath = name.replace(/\./g, "/");
     var L = Sk.realsyspath;
-    for (it = L.tp$iter(), i = it.tp$iternext(); i !== undefined; i = it.tp$iternext()) {
-        nameAsPath = name.replace(/\./g, "/");
-        fns = [
-                i.v + "/" + nameAsPath + ext,                 // module
-                i.v + "/" + nameAsPath + "/__init__" + ext    // package
-            ];
+    var it, i;
 
-        for (j = 0; j < fns.length; ++j) {
-            fn = fns[j];
-            //Sk.debugout("  import search, trying", fn);
+    for (it = L.tp$iter(), i = it.tp$iternext(); i !== undefined; i = it.tp$iternext()) {
+        fns.push(i.v + "/" + nameAsPath + ext);                 // module
+        fns.push(i.v + "/" + nameAsPath + "/__init__" + ext);   // package
+    }
+
+    j = 0;
+
+    return (function tryNextPath() {
+        var handleRead = function handleRead(s) {
+            var ns;
+            if (s instanceof Sk.misceval.Suspension) {
+                ns = new Sk.misceval.Suspension(undefined, s);
+                ns.resume = function() {
+                    try {
+                        return handleRead(s.resume());
+                    } catch (e) {
+                        j++;
+                        return tryNextPath();
+                    }
+                };
+                return ns;
+            } else {
+                return {filename: fns[j], code: s};
+            }
+        };
+        var s;
+
+        while (j < fns.length) {
+            // Ew, this is the only way to check for existence.
+            // Even worse, it reports non-existence through exceptions, so we have to
+            // write a custom resume() function to catch downstream exceptions and interpret
+            // them as "file not found, move on".
             try {
-                // todo; lame, this is the only way we have to test existence right now
-                Sk.read(fn);
-                //Sk.debugout("import search, found at", name, "type", ext, "at", fn);
-                return fn;
+                s = Sk.read(fns[j]);
+
+                if (!canSuspend) {
+                    s = Sk.misceval.retryOptionalSuspensionOrThrow(s);
+                }
+
+                return handleRead(s);
             } catch (e) {
+                j++;
             }
         }
-    }
 
-    if (!failok) {
-        throw new Sk.builtin.ImportError("No module named " + name);
-    }
-    //Sk.debugout("import search, nothing found, but failure was ok");
+        if (failok) {
+            return null;
+        } else {
+            throw new Sk.builtin.ImportError("No module named " + name);
+        }
+    })();
 };
 
 Sk.doOneTimeInitialization = function () {
@@ -25816,7 +26234,7 @@ Sk.importModuleInternal_ = function (name, dumpJS, modname, suppliedPyBody, canS
     var withLineNumbers;
     var finalcode;
     var result;
-    var filename, co, googClosure, external;
+    var filename, codeAndPath, co, isPy, googClosure, external;
     var module;
     var prev;
     var parentModName;
@@ -25852,7 +26270,25 @@ Sk.importModuleInternal_ = function (name, dumpJS, modname, suppliedPyBody, canS
         // all parent packages. so, here we're importing 'a.b', which will in
         // turn import 'a', and then return 'a' eventually.
         parentModName = modNameSplit.slice(0, modNameSplit.length - 1).join(".");
-        toReturn = Sk.importModuleInternal_(parentModName, dumpJS);
+        toReturn = Sk.importModuleInternal_(parentModName, dumpJS, undefined, undefined, canSuspend);
+
+        // If this suspends, we suspend. When that suspension is done, we can just
+        // repeat this whole function call
+        if (toReturn instanceof Sk.misceval.Suspension) {
+            // no canSuspend check here; we'll only get a Suspension out of importModuleInternal_ if
+            // canSuspend is true anyway
+            return (function waitForPreviousLoad(susp) {
+                if (susp instanceof Sk.misceval.Suspension) {
+                    // They're still going
+                    return new Sk.misceval.Suspension(waitForPreviousLoad, susp);
+                } else {
+                    // They're done!
+                    // Re-call ourselves, and this time "toReturn = Sk.importModuleInternal_(...)"
+                    // will hit the cache and complete immediately.
+                    return Sk.importModuleInternal_(name, dumpJS, modname, suppliedPyBody, canSuspend);
+                }
+            })(toReturn);
+        }
     }
 
     // otherwise:
@@ -25886,101 +26322,115 @@ Sk.importModuleInternal_ = function (name, dumpJS, modname, suppliedPyBody, canS
         external = Sk.loadExternalLibrary(name);
         if (external) {
             co = external;
-        }
-        // if we have it as a builtin (i.e. already in JS) module then load that.
-        else if (filename = Sk.importSearchPathForName(name, ".js", true)) {
-            co = { funcname: "$builtinmodule", code: Sk.read(filename) };
-        }
-        else {
-            filename = Sk.importSearchPathForName(name, ".py");
-            co = Sk.compile(Sk.read(filename), filename, "exec");
-        }
-    }
+        } else {
+            // Try loading as a builtin (i.e. already in JS) module, then try .py files
+            codeAndPath = Sk.importSearchPathForName(name, ".js", true, canSuspend);
 
-    module.$js = co.code; // todo; only in DEBUG?
-    finalcode = co.code;
-    if (Sk.dateSet == null || !Sk.dateSet) {
-        finalcode = "Sk.execStart = Sk.lastYield = new Date();\n" + co.code;
-        Sk.dateSet = true;
-    }
-
-    //if (!COMPILED)
-    {
-        if (dumpJS) {
-            withLineNumbers = function (code) {
-                var j;
-                var pad;
-                var width;
-                var i;
-                var beaut = js_beautify(code);
-                var lines = beaut.split("\n");
-                for (i = 1; i <= lines.length; ++i) {
-                    width = ("" + i).length;
-                    pad = "";
-                    for (j = width; j < 5; ++j) {
-                        pad += " ";
-                    }
-                    lines[i - 1] = "/* " + pad + i + " */ " + lines[i - 1];
+            co = (function compileReadCode(codeAndPath) {
+                if (codeAndPath instanceof Sk.misceval.Suspension) {
+                    return new Sk.misceval.Suspension(compileReadCode, codeAndPath);
+                } else if (!codeAndPath) {
+                    goog.asserts.assert(!isPy, "Sk.importReadFileFromPath did not throw when loading Python file failed");
+                    isPy = true;
+                    return compileReadCode(Sk.importSearchPathForName(name, ".py", false, canSuspend));
+                } else {
+                    return isPy ? Sk.compile(codeAndPath.code, codeAndPath.filename, "exec")
+                        : { funcname: "$builtinmodule", code: codeAndPath.code };
                 }
-                return lines.join("\n");
-            };
-            finalcode = withLineNumbers(finalcode);
-            Sk.debugout(finalcode);
+            })(codeAndPath);
         }
     }
 
-    namestr = "new Sk.builtin.str('" + modname + "')";
-    finalcode += "\n" + co.funcname + "(" + namestr + ");";
+    return (function importCompiledCode(co) {
 
-//	if (Sk.debugCode)
-//		Sk.debugout(finalcode);
+        if (co instanceof Sk.misceval.Suspension) {
+            return canSuspend ? new Sk.misceval.Suspension(importCompiledCode, co) : Sk.misceval.retryOptionalSuspensionOrThrow(co);
+        }
 
-    modlocs = goog.global["eval"](finalcode);
+        module.$js = co.code; // todo; only in DEBUG?
+        finalcode = co.code;
+        if (Sk.dateSet == null || !Sk.dateSet) {
+            finalcode = "Sk.execStart = Sk.lastYield = new Date();\n" + co.code;
+            Sk.dateSet = true;
+        }
 
-    return (function finishLoading(modlocs) {
-        var susp;
-
-        if (modlocs instanceof Sk.misceval.Suspension) {
-
-            if (canSuspend) {
-                return new Sk.misceval.Suspension(finishLoading, modlocs);
-            } else {
-                modlocs = Sk.misceval.retryOptionalSuspensionOrThrow(modlocs, "Module \""+modname+"\" suspended or blocked during load, and it was loaded somewhere that does not permit this");
+        //if (!COMPILED)
+        {
+            if (dumpJS) {
+                withLineNumbers = function (code) {
+                    var j;
+                    var pad;
+                    var width;
+                    var i;
+                    var beaut = js_beautify(code);
+                    var lines = beaut.split("\n");
+                    for (i = 1; i <= lines.length; ++i) {
+                        width = ("" + i).length;
+                        pad = "";
+                        for (j = width; j < 5; ++j) {
+                            pad += " ";
+                        }
+                        lines[i - 1] = "/* " + pad + i + " */ " + lines[i - 1];
+                    }
+                    return lines.join("\n");
+                };
+                finalcode = withLineNumbers(finalcode);
+                Sk.debugout(finalcode);
             }
         }
 
-        // pass in __name__ so the module can set it (so that the code can access
-        // it), but also set it after we're done so that builtins don't have to
-        // remember to do it.
-        if (!modlocs["__name__"]) {
-            modlocs["__name__"] = new Sk.builtin.str(modname);
-        }
+        namestr = "new Sk.builtin.str('" + modname + "')";
+        finalcode += "\n" + co.funcname + "(" + namestr + ");";
 
-        module["$d"] = modlocs;
+    //	if (Sk.debugCode)
+    //		Sk.debugout(finalcode);
 
-        // If an onAfterImport method is defined on the global Sk
-        // then call it now after a library has been successfully imported
-        // and compiled.
-        if (Sk.onAfterImport && typeof Sk.onAfterImport === "function") {
-            try {
-                Sk.onAfterImport(name);
-            } catch (e) {
+        modlocs = goog.global["eval"](finalcode);
+
+        return (function finishLoading(modlocs) {
+
+            if (modlocs instanceof Sk.misceval.Suspension) {
+
+                if (canSuspend) {
+                    return new Sk.misceval.Suspension(finishLoading, modlocs);
+                } else {
+                    modlocs = Sk.misceval.retryOptionalSuspensionOrThrow(modlocs, "Module \""+modname+"\" suspended or blocked during load, and it was loaded somewhere that does not permit this");
+                }
             }
-        }
 
-        if (toReturn) {
-            // if we were a dotted name, then we want to return the top-most
-            // package. we store ourselves into our parent as an attribute
-            parentModule = Sk.sysmodules.mp$subscript(parentModName);
-            parentModule.tp$setattr(modNameSplit[modNameSplit.length - 1], module);
-            //print("import returning parent module, modname", modname, "__name__", toReturn.tp$getattr("__name__").v);
-            return toReturn;
-        }
+            // pass in __name__ so the module can set it (so that the code can access
+            // it), but also set it after we're done so that builtins don't have to
+            // remember to do it.
+            if (!modlocs["__name__"]) {
+                modlocs["__name__"] = new Sk.builtin.str(modname);
+            }
 
-        //print("name", name, "modname", modname, "returning leaf");
-        // otherwise we return the actual module that we just imported
-        return module;
-    })(modlocs);
+            module["$d"] = modlocs;
+
+            // If an onAfterImport method is defined on the global Sk
+            // then call it now after a library has been successfully imported
+            // and compiled.
+            if (Sk.onAfterImport && typeof Sk.onAfterImport === "function") {
+                try {
+                    Sk.onAfterImport(name);
+                } catch (e) {
+                }
+            }
+
+            if (toReturn) {
+                // if we were a dotted name, then we want to return the top-most
+                // package. we store ourselves into our parent as an attribute
+                parentModule = Sk.sysmodules.mp$subscript(parentModName);
+                parentModule.tp$setattr(modNameSplit[modNameSplit.length - 1], module);
+                //print("import returning parent module, modname", modname, "__name__", toReturn.tp$getattr("__name__").v);
+                return toReturn;
+            }
+
+            //print("name", name, "modname", modname, "returning leaf");
+            // otherwise we return the actual module that we just imported
+            return module;
+        })(modlocs);
+    })(co);
 };
 
 /**
@@ -26020,18 +26470,25 @@ Sk.builtin.__import__ = function (name, globals, locals, fromlist) {
     // Save the Sk.globals variable importModuleInternal_ may replace it when it compiles
     // a Python language module.  for some reason, __name__ gets overwritten.
     var saveSk = Sk.globals;
-    var ret = Sk.importModuleInternal_(name);
-    if (saveSk !== Sk.globals) {
-        Sk.globals = saveSk;
-    }
-    if (!fromlist || fromlist.length === 0) {
+    var ret = Sk.importModuleInternal_(name, undefined, undefined, undefined, true);
+
+    return (function finalizeImport(ret) {
+        if (ret instanceof Sk.misceval.Suspension) {
+            return new Sk.misceval.Suspension(finalizeImport, ret);
+        }
+
+        if (saveSk !== Sk.globals) {
+            Sk.globals = saveSk;
+        }
+        if (!fromlist || fromlist.length === 0) {
+            return ret;
+        }
+        // if there's a fromlist we want to return the actual module, not the
+        // toplevel namespace
+        ret = Sk.sysmodules.mp$subscript(name);
+        goog.asserts.assert(ret);
         return ret;
-    }
-    // if there's a fromlist we want to return the actual module, not the
-    // toplevel namespace
-    ret = Sk.sysmodules.mp$subscript(name);
-    goog.asserts.assert(ret);
-    return ret;
+    })(ret);
 };
 
 Sk.importStar = function (module, loc, global) {
