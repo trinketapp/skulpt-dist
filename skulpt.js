@@ -4956,8 +4956,42 @@ Sk.configure = function (options) {
     Sk.sysargv = options["sysargv"] || Sk.sysargv;
     goog.asserts.assert(goog.isArrayLike(Sk.sysargv));
 
-    Sk.python3 = options["python3"] || Sk.python3;
-    goog.asserts.assert(typeof Sk.python3 === "boolean");
+    Sk.__future__ = options["__future__"] || {
+        print_function: false,
+        division: false,
+        absolute_import: null,
+        unicode_literals: false,
+        // skulpt specific
+        set_repr: false,
+        class_repr: false,
+        inherit_from_object: false
+    };
+
+    if (Sk.__future__.print_function === undefined || Sk.__future__.print_function === null || typeof Sk.__future__.print_function !== "boolean") {
+        throw new Error("must specify Sk.__future__.print_function and it must be a boolean");
+    }
+
+    if (Sk.__future__.division === undefined || Sk.__future__.division === null || typeof Sk.__future__.division !== "boolean") {
+        throw new Error("must specify Sk.__future__.division and it must be a boolean");
+    }
+
+    if (Sk.__future__.unicode_literals === undefined || Sk.__future__.unicode_literals === null || typeof Sk.__future__.unicode_literals !== "boolean") {
+        throw new Error("must specify Sk.__future__.unicode_literals and it must be a boolean");
+    }
+
+    if (Sk.__future__.set_repr === undefined || Sk.__future__.set_repr === null || typeof Sk.__future__.set_repr !== "boolean") {
+        throw new Error("must specify Sk.__future__.set_repr and it must be a boolean");
+    }
+
+    if (Sk.__future__.class_repr === undefined || Sk.__future__.class_repr === null || typeof Sk.__future__.class_repr !== "boolean") {
+        throw new Error("must specify Sk.__future__.class_repr and it must be a boolean");
+    }
+
+    if (Sk.__future__.inherit_from_object === undefined || Sk.__future__.inherit_from_object === null || typeof Sk.__future__.inherit_from_object !== "boolean") {
+        throw new Error("must specify Sk.__future__.inherit_from_object and it must be a boolean");
+    }
+
+    // in __future__ add checks for absolute_import
 
     Sk.imageProxy = options["imageProxy"] || "http://localhost:8080/320x";
     goog.asserts.assert(typeof Sk.imageProxy === "string");
@@ -5103,12 +5137,11 @@ if (!Sk.inBrowser) {
     };
 }
 
-Sk.python3 = false;
 Sk.inputfun = function (args) {
     return window.prompt(args);
 };
 
-goog.exportSymbol("Sk.python3", Sk.python3);
+goog.exportSymbol("Sk.__future__", Sk.__future__);
 goog.exportSymbol("Sk.inputfun", Sk.inputfun);
 goog.require("goog.asserts");
 if(Sk.builtin === undefined) {
@@ -5266,7 +5299,7 @@ Sk.builtin.type = function (name, bases, dict) {
 
         var inheritsFromObject = false, inheritsBuiltin = false;
 
-        if (bases.v.length === 0 && Sk.python3) {
+        if (bases.v.length === 0 && Sk.__future__.inherit_from_object) {
             // new style class, inherits from object by default
             inheritsFromObject = true;
             Sk.abstr.setUpInheritance(_name, klass, Sk.builtin.object);
@@ -5497,7 +5530,7 @@ Sk.builtin.type.makeIntoTypeObj = function (name, t) {
             cname = mod.v + ".";
         }
         ctype = "class";
-        if (!mod && !t.sk$klass && !Sk.python3) {
+        if (!mod && !t.sk$klass && !Sk.__future__.class_repr) {
             ctype = "type";
         }
         return new Sk.builtin.str("<" + ctype + " '" + cname + t.tp$name + "'>");
@@ -5514,7 +5547,7 @@ Sk.builtin.type.makeIntoTypeObj = function (name, t) {
 Sk.builtin.type.ob$type = Sk.builtin.type;
 Sk.builtin.type.tp$name = "type";
 Sk.builtin.type["$r"] = function () {
-    if(Sk.python3) {
+    if(Sk.__future__.class_repr) {
         return new Sk.builtin.str("<class 'type'>");
     } else {
         return new Sk.builtin.str("<type 'type'>");
@@ -16677,7 +16710,7 @@ Sk.builtin.int_.prototype.nb$reflected_multiply = function (other) {
 /** @override */
 Sk.builtin.int_.prototype.nb$divide = function (other) {
     var thisAsLong, thisAsFloat;
-    if (Sk.python3) {
+    if (Sk.__future__.division) {
         thisAsFloat = new Sk.builtin.float_(this.v);
         return thisAsFloat.nb$divide(other);
     }
@@ -20961,7 +20994,8 @@ Sk.builtin.set.prototype["$r"] = function () {
     for (it = Sk.abstr.iter(this), i = it.tp$iternext(); i !== undefined; i = it.tp$iternext()) {
         ret.push(Sk.misceval.objectRepr(i).v);
     }
-    if(Sk.python3) {
+
+    if(Sk.__future__.set_repr) {
         return new Sk.builtin.str("{" + ret.join(", ") + "}");
     } else {
         return new Sk.builtin.str("set([" + ret.join(", ") + "])");
@@ -24181,11 +24215,9 @@ Parser.prototype.classify = function (type, value, context) {
         ilabel = this.grammar.keywords.hasOwnProperty(value) && this.grammar.keywords[value];
 
         /* Check for handling print as an builtin function */
-        /* allow print to be a statement for now -bpm/trinket
-        if(value === "print" && (this.p_flags & Parser.CO_FUTURE_PRINT_FUNCTION || Sk.python3 === true)) {
+        if(value === "print" && (this.p_flags & Parser.CO_FUTURE_PRINT_FUNCTION || Sk.__future__.print_function === true)) {
             ilabel = false; // ilabel determines if the value is a keyword
         }
-        */
 
         if (ilabel) {
             //print("is keyword");
@@ -27253,7 +27285,7 @@ function parsestr (c, s) {
 
     // treats every sequence as unicodes even if they are not treated with uU prefix
     // kinda hacking though working for most purposes
-    if((c.c_flags & Parser.CO_FUTURE_UNICODE_LITERALS || Sk.python3 === true)) {
+    if((c.c_flags & Parser.CO_FUTURE_UNICODE_LITERALS || Sk.__future__.unicode_literals === true)) {
         unicode = true;
     }
 
