@@ -6829,6 +6829,21 @@ Sk.builtin.object.prototype.GenericGetAttr = function (name) {
     goog.asserts.assert(tp !== undefined, "object has no ob$type!");
 
     dict = this["$d"] || this.constructor["$d"];
+    //print("getattr", tp.tp$name, name);
+
+    descr = Sk.builtin.type.typeLookup(tp, name);
+
+    // otherwise, look in the type for a descr
+    if (descr !== undefined && descr !== null && descr.ob$type !== undefined) {
+        f = descr.ob$type.tp$descr_get;
+        if (!(f) && descr["__get__"]) {
+            f = descr["__get__"];
+            return Sk.misceval.callsimOrSuspend(f, descr, this);
+        }
+        // todo;
+        //if (f && descr.tp$descr_set) // is a data descriptor if it has a set
+        //return f.call(descr, this, this.ob$type);
+    }
 
     // todo; assert? force?
     if (dict) {
@@ -6881,7 +6896,30 @@ Sk.builtin.object.prototype.GenericSetAttr = function (name, value) {
     var objname = Sk.abstr.typeName(this);
     var pyname;
     var dict;
+    var descr;
+    var tp;
+    var f;
+
     goog.asserts.assert(typeof name === "string");
+
+    tp = this.ob$type;
+    goog.asserts.assert(tp !== undefined, "object has no ob$type!");
+
+    descr = Sk.builtin.type.typeLookup(tp, name);
+
+    // otherwise, look in the type for a descr
+    if (descr !== undefined && descr !== null && descr.ob$type !== undefined) {
+        // f = descr.ob$type.tp$descr_set;
+        if (!(f) && descr["__set__"]) {
+            f = descr["__set__"];
+            Sk.misceval.callsim(f, descr, this, value);
+            return;
+        }
+        // todo;
+        //if (f && descr.tp$descr_set) // is a data descriptor if it has a set
+        //return f.call(descr, this, this.ob$type);
+    }
+
     // todo; lots o' stuff
 
     dict = this["$d"] || this.constructor["$d"];
@@ -10674,6 +10712,15 @@ Sk.misceval.applyOrSuspend = function (func, kwdict, varargseq, kws, args) {
         //append kw args to args, filling in the default value where none is provided.
         return func.apply(null, args);
     } else {
+        fcall = func.__get__;
+        if (fcall !== undefined) {
+            fcall = Sk.misceval.callsim(func.__get__, func, func);
+            //args.unshift(func);
+            if (fcall.tp$call) {
+                return fcall.tp$call.call(fcall, args);
+            }
+        }
+
         fcall = func.tp$call;
         if (fcall !== undefined) {
             if (varargseq) {
@@ -13840,7 +13887,24 @@ Sk.builtin.dict.prototype.ob$ne = function (other) {
 };
 
 Sk.builtin.dict.prototype["copy"] = new Sk.builtin.func(function (self) {
-    throw new Sk.builtin.NotImplementedError("dict.copy is not yet implemented in Skulpt");
+    Sk.builtin.pyCheckArgs("copy", arguments, 0, 0, false, true);
+
+    var it; // Iterator
+    var k; // Key of dict item
+    var v; // Value of dict item
+    var newCopy = new Sk.builtin.dict([]);
+
+    for (it = Sk.abstr.iter(self), k = it.tp$iternext();
+            k !== undefined;
+            k = it.tp$iternext()) {
+        v = self.mp$subscript(k);
+        if (v === undefined) {
+            v = null;
+        }
+        newCopy.mp$ass_subscript(k, v);
+    }
+
+    return newCopy;
 });
 
 Sk.builtin.dict.prototype["fromkeys"] = new Sk.builtin.func(function (seq, value) {
@@ -30573,6 +30637,9 @@ Compiler.prototype.buildcodeobj = function (n, coname, decorator_list, args, cal
         out(scopename, ".$defaults=[", defaults.join(","), "];");
     }
 
+    if (decos.length > 0) {
+        out(scopename, ".$decorators=[", decos.join(","), "];");
+    }
 
     //
     // attach co_varnames (only the argument names) for keyword argument
@@ -30628,7 +30695,14 @@ Compiler.prototype.buildcodeobj = function (n, coname, decorator_list, args, cal
         }
     }
     else {
-        return this._gr("funcobj", "new Sk.builtins['function'](", scopename, ",$gbl", frees, ")");
+        var res;
+        if (decos.length > 0)
+        {
+            res = this._gr("funcobj", "Sk.misceval.callsim(", scopename, ".$decorators[0], new Sk.builtins['function'](", scopename, ",$gbl", frees, "))"); // scopename, ".$decorators[0](new Sk.builtins['function'](", scopename, ",$gbl", frees, "))";
+        } else {
+            res = this._gr("funcobj", "new Sk.builtins['function'](", scopename, ",$gbl", frees, ")");
+        }
+        return res;
     }
 };
 
@@ -31463,7 +31537,7 @@ Sk.importSearchPathForName = function (name, ext, failok, canSuspend, currentDir
  *
  * @return {undefined}
  */
-Sk.doOneTimeInitialization = function () {
+Sk.doOneTimeInitialization = function (canSuspend) {
     var proto, name, i, x, func;
     var builtins = [];
 
@@ -31510,13 +31584,21 @@ Sk.doOneTimeInitialization = function () {
 
         proto[name] = new Sk.builtin.func(proto[name]);
     }
+
+    // compile internal python files and add them to the __builtin__ module
+    for (var file in Sk.internalPy.files) {
+        var fileWithoutExtension = file.split(".")[0].split("/")[1];
+        var mod = Sk.importBuiltinWithBody(fileWithoutExtension, false, Sk.internalPy.files[file], canSuspend);
+        goog.asserts.assert(mod["$d"][fileWithoutExtension] !== undefined, "Should have imported name " + fileWithoutExtension);
+        Sk.builtins[fileWithoutExtension] = mod["$d"][fileWithoutExtension];
+    }
 };
 
 /**
  * currently only pull once from Sk.syspath. User might want to change
  * from js or from py.
  */
-Sk.importSetUpPath = function () {
+Sk.importSetUpPath = function (canSuspend) {
     var i;
     var paths;
     if (!Sk.realsyspath) {
@@ -31530,7 +31612,7 @@ Sk.importSetUpPath = function () {
         }
         Sk.realsyspath = new Sk.builtin.list(paths);
 
-        Sk.doOneTimeInitialization();
+        Sk.doOneTimeInitialization(canSuspend);
     }
 };
 
@@ -31564,7 +31646,7 @@ Sk.importModuleInternal_ = function (name, dumpJS, modname, suppliedPyBody, canS
     var parentModName;
     var modNameSplit;
     var toReturn;
-    Sk.importSetUpPath();
+    Sk.importSetUpPath(canSuspend);
 
     // if no module name override, supplied, use default name
     if (modname === undefined) {
@@ -31814,6 +31896,21 @@ Sk.importMainWithBody = function (name, dumpJS, body, canSuspend) {
     return Sk.importModuleInternal_(name, dumpJS, "__main__", body, canSuspend);
 };
 
+/**
+ * **Run Python Code in Skulpt**
+ *
+ * When you want to hand Skulpt a string corresponding to a Python program this is the function.
+ *
+ * @param name {string}  File name to use for messages related to this run
+ * @param dumpJS {boolean} print out the compiled javascript
+ * @param body {string} Python Code
+ * @param canSuspend {boolean}  Use Suspensions for async execution
+ *
+ */
+Sk.importBuiltinWithBody = function (name, dumpJS, body, canSuspend) {
+    return Sk.importModuleInternal_(name, dumpJS, "__builtin__", body, canSuspend);
+};
+
 Sk.builtin.__import__ = function (name, globals, locals, fromlist) {
     // Save the Sk.globals variable importModuleInternal_ may replace it when it compiles
     // a Python language module.  for some reason, __name__ gets overwritten.
@@ -31834,24 +31931,34 @@ Sk.builtin.__import__ = function (name, globals, locals, fromlist) {
         if (saveSk !== Sk.globals) {
             Sk.globals = saveSk;
         }
+
+        // There is no fromlist, so we have reached the end of the lookup, return
         if (!fromlist || fromlist.length === 0) {
             return ret;
         } else {
-            // if it's on the module self return the module
-            var mod = Sk.sysmodules.mp$subscript(name);
-            if (mod && mod.$d && mod.$d[fromlist[0]]) {
-                return mod;
-            }
             // try to load the module from the file system if it is not present on the module itself
             var i;
             var fromNameRet; // module returned
             var fromName; // name of current module for fromlist
             var fromImportName; // dotted name
             var dottedName = name.split("."); // get last module in dotted path
-            dottedName = dottedName[dottedName.length-1];
+            var lastDottedName = dottedName[dottedName.length-1];
+            
+            var found; // Contains sysmodules the "name"
+            var foundFromName; // Contains the sysmodules[name] the current item from the fromList
+
             for (i = 0; i < fromlist.length; i++) {
                 fromName = fromlist[i];
-                if (fromName != "*" && ret.$d[fromName] == null && (ret.$d[dottedName] != null || ret.$d.__name__.v == dottedName)) {
+
+                foundFromName = false;
+                found = Sk.sysmodules.sq$contains(name); // Check if "name" is inside sysmodules
+                if (found) {
+                    // Check if the current fromName is already in the "name" module
+                    foundFromName = Sk.sysmodules.mp$subscript(name)["$d"][fromName] != null;
+                }
+
+                // Only import from file system if we have not found the fromName in the current module
+                if (!foundFromName && fromName != "*" && ret.$d[fromName] == null && (ret.$d[lastDottedName] != null || ret.$d.__name__.v == lastDottedName)) {
                     // add the module name to our requiredImport list
                     fromImportName = "" + name + "." + fromName;
                     fromNameRet = Sk.importModuleInternal_(fromImportName, undefined, undefined, undefined, true, currentDir);
@@ -31859,9 +31966,9 @@ Sk.builtin.__import__ = function (name, globals, locals, fromlist) {
                 }
             }
         }
-        //
-        // // if there's a fromlist we want to return the actual module, not the
-        // // toplevel namespace
+
+        // if there's a fromlist we want to return the actual module, not the
+        // toplevel namespace
         ret = Sk.sysmodules.mp$subscript(name);
         goog.asserts.assert(ret);
         return ret;
@@ -31884,6 +31991,7 @@ Sk.importStar = function (module, loc, global) {
 
 goog.exportSymbol("Sk.importMain", Sk.importMain);
 goog.exportSymbol("Sk.importMainWithBody", Sk.importMainWithBody);
+goog.exportSymbol("Sk.importBuiltinWithBody", Sk.importBuiltinWithBody);
 goog.exportSymbol("Sk.builtin.__import__", Sk.builtin.__import__);
 goog.exportSymbol("Sk.importStar", Sk.importStar);
 /**
@@ -32834,3 +32942,4 @@ Sk.builtin.lng.$defaults = [ new Sk.builtin.int_(10) ];
 Sk.builtin.sorted.co_varnames = ["cmp", "key", "reverse"];
 Sk.builtin.sorted.co_numargs = 4;
 Sk.builtin.sorted.$defaults = [Sk.builtin.none.none$, Sk.builtin.none.none$, Sk.builtin.bool.false$];
+Sk.internalPy={"files": {"src/property.py": "class property(object):\n    \"Emulate PyProperty_Type() in Objects/descrobject.c\"\n\n    def __init__(self, fget=None, fset=None, fdel=None, doc=None):\n        self.fget = fget\n        self.fset = fset\n        self.fdel = fdel\n        if doc is None and fget is not None:\n            if hasattr(fget, '__doc__'):\n                doc = fget.__doc__\n            else:\n                doc = None\n        self.__doc__ = doc\n\n    def __get__(self, obj, objtype=None):\n        if obj is None:\n            return self\n        if self.fget is None:\n            raise AttributeError(\"unreadable attribute\")\n        return self.fget(obj)\n\n    def __set__(self, obj, value):\n        if self.fset is None:\n            raise AttributeError(\"can't set attribute\")\n        self.fset(obj, value)\n\n    def __delete__(self, obj):\n        if self.fdel is None:\n            raise AttributeError(\"can't delete attribute\")\n        self.fdel(obj)\n\n    def getter(self, fget):\n        return type(self)(fget, self.fset, self.fdel, self.__doc__)\n\n    def setter(self, fset):\n        return type(self)(self.fget, fset, self.fdel, self.__doc__)\n\n    def deleter(self, fdel):\n        return type(self)(self.fget, self.fset, fdel, self.__doc__)\n"}};
