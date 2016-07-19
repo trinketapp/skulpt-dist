@@ -5005,6 +5005,12 @@ Sk.configure = function (options) {
     Sk.debugging = options["debugging"] || false;
     goog.asserts.assert(typeof Sk.debugging === "boolean");
 
+    Sk.killableWhile = options["killableWhile"] || false;
+    goog.asserts.assert(typeof Sk.killableWhile === "boolean");
+
+    Sk.killableFor = options["killableFor"] || false;
+    goog.asserts.assert(typeof Sk.killableFor === "boolean");
+
     Sk.breakpoints = options["breakpoints"] || function() { return true; };
     goog.asserts.assert(typeof Sk.breakpoints === "function");
 
@@ -10457,6 +10463,10 @@ Sk.misceval.asyncToPromise = function(suspendablefn, suspHandlers) {
                             // Assumes all yields are optional, as Sk.setTimeout might
                             // not be able to yield.
                             Sk.setTimeout(resume, 0);
+                            return;
+
+                        } else if (r.data["type"] == "Sk.delay") {
+                            Sk.setTimeout(resume, 1);
                             return;
 
                         } else if (r.optional) {
@@ -30096,7 +30106,23 @@ Compiler.prototype.cwhile = function (s) {
         this.pushContinueBlock(top);
 
         this.setBlock(body);
+
+        if ((Sk.debugging || Sk.killableWhile) && this.u.canSuspend) {
+            var suspType = 'Sk.delay';
+            var debugBlock = this.newBlock("debug breakpoint for line "+s.lineno);
+            out("if (Sk.breakpoints('"+this.filename+"',"+s.lineno+","+s.col_offset+")) {",
+                "var $susp = $saveSuspension({data: {type: '"+suspType+"'}, resume: function() {}}, '"+this.filename+"',"+s.lineno+","+s.col_offset+");",
+                "$susp.$blk = "+debugBlock+";",
+                "$susp.optional = true;",
+                "return $susp;",
+                "}");
+            this._jump(debugBlock);
+            this.setBlock(debugBlock);
+            this.u.doesSuspend = true;
+        }
+
         this.vseqstmt(s.body);
+
         this._jump(top);
 
         this.popContinueBlock();
@@ -30149,6 +30175,20 @@ Compiler.prototype.cfor = function (s) {
     nexti = this._gr("next", "$ret");
     this._jumpundef(nexti, cleanup); // todo; this should be handled by StopIteration
     target = this.vexpr(s.target, nexti);
+
+    if ((Sk.debugging || Sk.killableFor) && this.u.canSuspend) {
+        var suspType = 'Sk.delay';
+        var debugBlock = this.newBlock("debug breakpoint for line "+s.lineno);
+        out("if (Sk.breakpoints('"+this.filename+"',"+s.lineno+","+s.col_offset+")) {",
+            "var $susp = $saveSuspension({data: {type: '"+suspType+"'}, resume: function() {}}, '"+this.filename+"',"+s.lineno+","+s.col_offset+");",
+            "$susp.$blk = "+debugBlock+";",
+            "$susp.optional = true;",
+            "return $susp;",
+            "}");
+        this._jump(debugBlock);
+        this.setBlock(debugBlock);
+        this.u.doesSuspend = true;
+    }
 
     // execute body
     this.vseqstmt(s.body);
@@ -31269,6 +31309,7 @@ Compiler.prototype.cmod = function (mod) {
     this.u.varDeclsCode += "if ("+modf+".wakingSuspension!==undefined) { $wakeFromSuspension(); }" +
         "if (Sk.retainGlobals) {" +
         "    if (Sk.globals) { $gbl = Sk.globals; Sk.globals = $gbl; $loc = $gbl; }" +
+        "    if (Sk.globals) { $gbl = Sk.globals; Sk.globals = $gbl; $loc = $gbl; $gbl.__name__=$modname;$loc.__file__=new Sk.builtins.str('" + this.filename + "');}" +
         "    else { Sk.globals = $gbl; }" +
         "} else { Sk.globals = $gbl; }";
 
