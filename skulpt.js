@@ -22178,6 +22178,8 @@ Sk.ffi.remapToJs = function (obj) {
         return Sk.builtin.asnum$(obj);
     } else if (typeof obj === "number" || typeof obj === "boolean") {
         return obj;
+    } else if (obj === undefined) {
+        return undefined;
     } else {
         return obj.v;
     }
@@ -29407,7 +29409,12 @@ var reservedWords_ = {
     "with": true
 };
 
-function fixReservedWords (name) {
+/**
+ * Fix reserved words
+ * 
+ * @param {string} name
+ */
+function fixReservedWords(name) {
     if (reservedWords_[name] !== true) {
         return name;
     }
@@ -30588,12 +30595,13 @@ Compiler.prototype.cfromimport = function (s) {
     var storeName;
     var got;
     var alias;
+    var aliasOut;
     var mod;
     var i;
     var n = s.names.length;
     var names = [];
     for (i = 0; i < n; ++i) {
-        names[i] = s.names[i].name["$r"]().v;
+        names[i] = "'" + fixReservedWords(s.names[i].name.v) + "'";
     }
     out("$ret = Sk.builtin.__import__(", s.module["$r"]().v, ",$gbl,$loc,[", names, "]);");
 
@@ -30604,6 +30612,7 @@ Compiler.prototype.cfromimport = function (s) {
     mod = this._gr("module", "$ret");
     for (i = 0; i < n; ++i) {
         alias = s.names[i];
+        aliasOut = "'" + fixReservedWords(alias.name.v) + "'";
         if (i === 0 && alias.name.v === "*") {
             goog.asserts.assert(n === 1);
             out("Sk.importStar(", mod, ",$loc, $gbl);");
@@ -30611,7 +30620,7 @@ Compiler.prototype.cfromimport = function (s) {
         }
 
         //out("print(\"getting Sk.abstr.gattr(", mod, ",", alias.name["$r"]().v, ")\");");
-        got = this._gr("item", "Sk.abstr.gattr(", mod, ",", alias.name["$r"]().v, ")");
+        got = this._gr("item", "Sk.abstr.gattr(", mod, ",", aliasOut, ")");
         //out("print('got');");
         storeName = alias.name;
         if (alias.asname) {
@@ -31591,8 +31600,7 @@ Sk.resetCompiler = function () {
     Sk.gensymcount = 0;
 };
 
-goog.exportSymbol("Sk.resetCompiler", Sk.resetCompiler);
-/**
+goog.exportSymbol("Sk.resetCompiler", Sk.resetCompiler);/**
  * @namespace Sk
  *
  */
@@ -32161,10 +32169,12 @@ Sk.builtin.__import__ = function (name, globals, locals, fromlist) {
     // a Python language module.  for some reason, __name__ gets overwritten.
     var saveSk = Sk.globals;
 
+    var file = Sk.ffi.remapToJs(locals["__file__"]);
+
     var currentDir =
-        locals["__file__"] === undefined ?
+        file === undefined ?
             undefined :
-            locals["__file__"].v.substring(0, locals["__file__"].v.lastIndexOf("/"));
+            file.substring(0, file.lastIndexOf("/"));
 
     var ret = Sk.importModuleInternal_(name, undefined, undefined, undefined, true, currentDir);
 
