@@ -1,16 +1,4 @@
-(function(){function k(b,a){s[b]||(typeof console!=="undefined"&&typeof console.warn=="function"&&console.warn("[WARNING] "+b+" is deprecated and will be removed in version 1.0. Instead, use `"+a+"`."),s[b]=!0)}function t(b){b.localize=i.localize.bind(i);b.timezone=i.timezone.bind(i);b.utc=i.utc.bind(i)}function r(b,a,e){a&&a.days&&(e=a,a=void 0);e&&k("`"+g+"(format, [date], [locale])`","var s = "+g+".localize(locale); s(format, [date])");return(e?i.localize(e):i)(b,a)}function u(b,a,e){e?k("`"+g+
-".strftime(format, [date], [locale])`","var s = "+g+".localize(locale); s(format, [date])"):k("`"+g+".strftime(format, [date])`",g+"(format, [date])");return(e?i.localize(e):i)(b,a)}function p(b,a,e){function g(b,c,h,a){for(var d="",f=null,e=!1,i=b.length,j=!1,o=0;o<i;o++){var n=b.charCodeAt(o);if(e===!0)if(n===45)f="";else if(n===95)f=" ";else if(n===48)f="0";else if(n===58)j&&typeof console!=="undefined"&&typeof console.warn=="function"&&console.warn("[WARNING] detected use of unsupported %:: or %::: modifiers to strftime"),
-j=!0;else{switch(n){case 65:d+=h.days[c.getDay()];break;case 66:d+=h.months[c.getMonth()];break;case 67:d+=l(Math.floor(c.getFullYear()/100),f);break;case 68:d+=g(h.formats.D,c,h,a);break;case 70:d+=g(h.formats.F,c,h,a);break;case 72:d+=l(c.getHours(),f);break;case 73:d+=l(v(c.getHours()),f);break;case 76:d+=Math.floor(a%1E3)>99?Math.floor(a%1E3):Math.floor(a%1E3)>9?"0"+Math.floor(a%1E3):"00"+Math.floor(a%1E3);break;case 77:d+=l(c.getMinutes(),f);break;case 80:d+=c.getHours()<12?h.am:h.pm;break;case 82:d+=
-g(h.formats.R,c,h,a);break;case 83:d+=l(c.getSeconds(),f);break;case 84:d+=g(h.formats.T,c,h,a);break;case 85:d+=l(w(c,"sunday"),f);break;case 87:d+=l(w(c,"monday"),f);break;case 88:d+=g(h.formats.X,c,h,a);break;case 89:d+=c.getFullYear();break;case 90:k&&m===0?d+="GMT":(f=c.toString().match(/\(([\w\s]+)\)/),d+=f&&f[1]||"");break;case 97:d+=h.shortDays[c.getDay()];break;case 98:d+=h.shortMonths[c.getMonth()];break;case 99:d+=g(h.formats.c,c,h,a);break;case 100:d+=l(c.getDate(),f);break;case 101:d+=
-l(c.getDate(),f==null?" ":f);break;case 104:d+=h.shortMonths[c.getMonth()];break;case 106:f=new Date(c.getFullYear(),0,1);f=Math.ceil((c.getTime()-f.getTime())/864E5);d+=f>99?f:f>9?"0"+f:"00"+f;break;case 107:d+=l(c.getHours(),f==null?" ":f);break;case 108:d+=l(v(c.getHours()),f==null?" ":f);break;case 109:d+=l(c.getMonth()+1,f);break;case 110:d+="\n";break;case 111:d+=String(c.getDate())+A(c.getDate());break;case 112:d+=c.getHours()<12?h.AM:h.PM;break;case 114:d+=g(h.formats.r,c,h,a);break;case 115:d+=
-Math.floor(a/1E3);break;case 116:d+="\t";break;case 117:f=c.getDay();d+=f===0?7:f;break;case 118:d+=g(h.formats.v,c,h,a);break;case 119:d+=c.getDay();break;case 120:d+=g(h.formats.x,c,h,a);break;case 121:d+=(""+c.getFullYear()).slice(2);break;case 122:k&&m===0?d+=j?"+00:00":"+0000":(f=m!==0?m/6E4:-c.getTimezoneOffset(),e=j?":":"",n=Math.abs(f%60),d+=(f<0?"-":"+")+l(Math.floor(Math.abs(f/60)))+e+l(n));break;default:d+=b[o]}f=null;e=!1}else n===37?e=!0:d+=b[o]}return d}var i=b||x,m=a||0,k=e||!1,j=0,
-q,b=function(b,c){var a;c?(a=c.getTime(),k&&(c=new Date(c.getTime()+(c.getTimezoneOffset()||0)*6E4+m))):(a=Date.now(),a>j?(j=a,q=new Date(j),a=j,k&&(q=new Date(j+(q.getTimezoneOffset()||0)*6E4+m))):a=j,c=q);return g(b,c,i,a)};b.localize=function(a){return new p(a||i,m,k)};b.timezone=function(a){var c=m,b=k,e=typeof a;if(e==="number"||e==="string")b=!0,e==="string"?(c=a[0]==="-"?-1:1,e=parseInt(a.slice(1,3),10),a=parseInt(a.slice(3,5),10),c=c*(60*e+a)*6E4):e==="number"&&(c=a*6E4);return new p(i,c,
-b)};b.utc=function(){return new p(i,m,!0)};return b}function l(b,a){if(a===""||b>9)return b;a==null&&(a="0");return a+b}function v(b){if(b===0)return 12;else if(b>12)return b-12;return b}function w(b,a){var a=a||"sunday",e=b.getDay();a==="monday"&&(e===0?e=6:e--);var g=Date.UTC(b.getFullYear(),0,1),i=Date.UTC(b.getFullYear(),b.getMonth(),b.getDate());return Math.floor((Math.floor((i-g)/864E5)+7-e)/7)}function A(b){var a=b%10;b%=100;if(b>=11&&b<=13||a===0||a>=4)return"th";switch(a){case 1:return"st";
-case 2:return"nd";case 3:return"rd"}}var x={days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],shortDays:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],months:["January","February","March","April","May","June","July","August","September","October","November","December"],shortMonths:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],AM:"AM",PM:"PM",am:"am",pm:"pm",formats:{D:"%m/%d/%y",F:"%Y-%m-%d",R:"%H:%M",T:"%H:%M:%S",X:"%T",c:"%a %b %d %X %Y",r:"%I:%M:%S %p",
-v:"%e-%b-%Y",x:"%D"}},i=new p(x,0,!1),y=typeof module!=="undefined",j;y?(j=module.exports=r,j.strftime=u):(j=function(){return this||(0,eval)("this")}(),j.strftime=r);var g=y?"require('strftime')":"strftime",s={};j.strftimeTZ=function(b,a,e,j){if((typeof e=="number"||typeof e=="string")&&j==null)j=e,e=void 0;e?k("`"+g+".strftimeTZ(format, date, locale, tz)`","var s = "+g+".localize(locale).timezone(tz); s(format, [date])` or `var s = "+g+".localize(locale); s.timezone(tz)(format, [date])"):k("`"+
-g+".strftimeTZ(format, date, tz)`","var s = "+g+".timezone(tz); s(format, [date])` or `"+g+".timezone(tz)(format, [date])");return(e?i.localize(e):i).timezone(j)(b,a)};j.strftimeUTC=function(b,a,e){e?k("`"+g+".strftimeUTC(format, date, locale)`","var s = "+g+".localize(locale).utc(); s(format, [date])"):k("`"+g+".strftimeUTC(format, [date])`","var s = "+g+".utc(); s(format, [date])");return(e?z.localize(e):z)(b,a)};j.localizedStrftime=function(b){k("`"+g+".localizedStrftime(locale)`",g+".localize(locale)");
-return i.localize(b)};t(r);t(u);var z=i.utc();if(typeof Date.now!=="function")Date.now=function(){return+new Date}})();
-!function(){"use strict";var strptime=function(str,format,local){return strptime.parse(str,format,local)};strptime.version="0.0.1";var namespace;if(typeof module!=="undefined"){namespace=module.exports=strptime}else{namespace=function(){return this||(1,eval)("this")}()}namespace.strptime=strptime;!function(strptime){strptime.locale={a:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],A:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],b:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],B:["January","February","March","April","May","June","July","August","September","October","November","December"],f:["Jan.","Feb.","Mar.","Apr.","May","Jun.","Jul.","Aug.","Sep.","Oct.","Nov.","Dec."],c:"%Y-%m-%d %H:%M:%S",P:["am","pm"],r:"%I:%M:%S %p",x:"%m/%d/%y",X:"%H:%M:%S",day:["Yesterday","Today","Tomorrow"],bg:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],Bg:["January","February","March","April","May","June","July","August","September","October","November","December"],fg:["Jan.","Feb.","Mar.","Apr.","May","Jun.","Jul.","Aug.","Sep.","Oct.","Nov.","Dec."],Date_dBY_year_in_HM:"%#B %-d, %Y at %-H:%M",Date_dBY_year:"%#B %-d, %Y",Date_dBY:"%#B %-d, %Y",Date_AdBY:"%A, %#B %-d, %Y",Date_dBA:"%#B %-d, %A",Date_df_in_HM:"%#f, %-d at %-H:%M",Date_dfY:"%-d %#f %Y",Date_dB_in_HM:"%#B %-d at %-H:%M",Date_df:"%-d %#f"}}(strptime);!function(strptime){var inArray=Array.prototype.indexOf||function(el){var l=this.length;var i=0;while(i<l){if(el==this[i]){return i}i++}return-1};var locale=strptime.locale;var strRegNum2="[\\d\\s]?\\d";var strRegStr="\\S+";var specifiers={"%":"\\%",a:strRegStr,A:strRegStr,b:{reg:strRegStr,make:function(date,data,mod,gen){data=inArray.call(gen?locale.bg:locale.b,toLetterCaseReverse(data,mod));if(data===-1){return false}date.setUTCMonth(data);return true}},h:{reg:strRegStr,make:function(date,data,mod,gen){data=inArray.call(gen?locale.bg:locale.b,toLetterCaseReverse(data,mod));if(data===-1){return false}date.setUTCMonth(data);return true}},B:{reg:strRegStr,make:function(date,data,mod,gen){data=inArray.call(gen?locale.Bg:locale.B,toLetterCaseReverse(data,mod));if(data===-1){return false}date.setUTCMonth(data);return true}},f:{reg:strRegStr,make:function(date,data,mod,gen){data=inArray.call(gen?locale.fg:locale.f,toLetterCaseReverse(data,mod));if(data===-1){return false}date.setUTCMonth(data);return true}},g:{reg:strRegNum2,make:function(date,data){data=parseInt(data,10);if(data<0||data>99){return false}data=data+100*parseInt((new Date).getUTCFullYear()/100,10);date.setUTCFullYear(data);return true}},G:{reg:"\\d{4}",make:function(date,data){data=parseInt(data,10);date.setUTCFullYear(data);return true}},d:{reg:strRegNum2,make:function(date,data){data=parseInt(data,10);if(data<1||data>31){return false}date.setUTCDate(data);return true}},e:{reg:strRegNum2,make:function(date,data){data=parseInt(data,10);if(data<1||data>31){return false}date.setUTCDate(data);return true}},H:{reg:strRegNum2,make:function(date,data){data=parseInt(data,10);if(data<0||data>23){return false}date.setUTCHours(data);return true}},I:{reg:strRegNum2,make:function(date,data){data=parseInt(data,10);if(data<1||data>12){return false}date.setUTCHours(date.getUTCHours()+data);return true}},m:{reg:strRegNum2,make:function(date,data){data=parseInt(data,10);if(data<1||data>12){return false}date.setUTCMonth(data-1);return true}},M:{reg:strRegNum2,make:function(date,data){data=parseInt(data,10);if(data<0||data>59){return false}date.setUTCMinutes(data);return true}},n:"\\n",p:{reg:strRegStr,make:function(date,data){data=inArray.call(locale.P,data.toLowerCase());if(data===-1){return false}if(data===1){date.setUTCHours(date.getUTCHours()+12)}return true}},P:{reg:strRegStr,make:function(date,data){data=inArray.call(locale.P,data.toLowerCase());if(data===-1){return false}if(data===1){date.setUTCHours(date.getUTCHours()+12)}return true}},S:{reg:strRegNum2,make:function(date,data){data=parseInt(data,10);if(data<0||data>60){return false}date.setUTCSeconds(data);return true}},t:"\\t",u:"\\d",U:strRegNum2,w:"\\d",W:strRegNum2,y:{reg:strRegNum2,make:function(date,data){data=parseInt(data,10);if(data<0||data>99){return false}data=data+100*parseInt((new Date).getUTCFullYear()/100,10);date.setUTCFullYear(data);return true}},Y:{reg:"\\d{4}",make:function(date,data){data=parseInt(data,10);date.setUTCFullYear(data);return true}},z:{reg:"[+\\-]\\d{4}",make:function(date,data){var m=data.match(/^([+\-])(\d{2})(\d{2})$/);if(!m){return false}var offset=(parseInt(m[2],10)*60+parseInt(m[3],10))*6e4;if(m[1]==="+"){offset=-offset}date.setTime(date.getTime()+offset);return true}},l:{reg:strRegNum2,make:function(date,data){data=parseInt(data,10);if(data<1||data>12){return false}date.setUTCHours(date.getUTCHours()+data);return true}},s:{reg:"\\d+",make:function(date,data){data=parseInt(data,10);date.setTime(data*1e3);return true}},c:locale.c,r:locale.r,R:"%H:%M",T:"%H:%M:%S",x:locale.x,X:locale.X,D:"%m/%d/%y",F:"%Y-%m-%d",Date_iso:"%Y-%m-%dT%H:%M:%S",Date_dBY_year_in_HM:locale.Date_dBY_year_in_HM,Date_dBY_year:locale.Date_dBY_year,Date_dBY:locale.Date_dBY,Date_dBA:locale.Date_dBA,Date_AdBY:locale.Date_AdBY,Date_df_in_HM:locale.Date_df_in_HM,Date_dfY:locale.Date_dfY,Date_dB_in_HM:locale.Date_dB_in_HM,Date_dmY__dot:"%d.%m.%Y",Date_df:locale.Date_df,Date_FT:"%F %T",Date_dmY__minus:"%d-%m-%Y"};strptime.parse=function(str,format,local){str=String(str);format=String(format);var loop=5;while(/%(Date_[a-zA-Z0-9_]+|[cDFrRTxX])/g.test(format)&&loop){format=format.replace(/%(Date_[a-zA-Z0-9_]+|[cDFrRTxX])/,formatTransform);loop--}formatTransform.make=[];var reg=format.replace(/%(([#\^!~]{0,2})[aAbBfh]|([0\-_]?)[degHImMSVWyl]|[GnpPtuUwYzZs%])/g,formatTransform);var match=str.match(new RegExp(reg));if(!match||!formatTransform.make.length){return null}var date=new Date(Date.UTC(0,0));for(var i=0,l=formatTransform.make.length;i<l;i++){var build=formatTransform.make[i];if(!build[0](date,match[i+1],build[1],build[2])){return null}}if(local){date.setTime(date.getTime()+date.getTimezoneOffset()*6e4)}return date};function formatTransform(_,spec,mod,numPad,pos,str){spec=String(spec);mod=String(mod);spec=spec.replace(/^[#_0\^\-!~]+/,"");var s=specifiers[spec];if(!s){return _}var genitive=false;if(mod.indexOf("!")===-1&&spec.length===1&&(mod.indexOf("~")>-1||"bBf".indexOf(spec)>-1&&/%[0\-_]?d[\s]+$/.test(str.substr(0,pos)))){genitive=true}if((spec==="I"||spec==="l")&&!/%[pP]/.test(str)){throw new Error("Undefined AM/PM")}switch(typeof s){case"function":return s();case"string":return s;case"object":formatTransform.make.push([s.make,mod,genitive]);return"("+s.reg+")";default:return _}}function toLetterCaseReverse(str,mode){str=String(str);mode=String(mode);if(mode.indexOf("#")!==-1){return str.substr(0,1).toUpperCase()+str.substr(1)}if(mode.indexOf("^")!==-1){return str.substr(0,1)+str.substr(1).toLowerCase()}return str}}(strptime)}();// Copyright 2006 The Closure Library Authors. All Rights Reserved.
+// Copyright 2006 The Closure Library Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -4902,181 +4890,7 @@ define("promise/utils",
   });
 requireModule('promise/polyfill').polyfill();
 }(this));
-(function (global) {
-    "use strict";
-
-    if (global.setImmediate) {
-        return;
-    }
-
-    var nextHandle = 1; // Spec says greater than zero
-    var tasksByHandle = {};
-    var currentlyRunningATask = false;
-    var doc = global.document;
-    var setImmediate;
-
-    function addFromSetImmediateArguments(args) {
-        tasksByHandle[nextHandle] = partiallyApplied.apply(undefined, args);
-        return nextHandle++;
-    }
-
-    // This function accepts the same arguments as setImmediate, but
-    // returns a function that requires no arguments.
-    function partiallyApplied(handler, timeout) {
-        var args = [].slice.call(arguments, 1);
-        return function() {
-            if (typeof handler === "function") {
-                handler.apply(undefined, args);
-            } else {
-                (new Function("" + handler))();
-            }
-        };
-    }
-
-    function runIfPresent(handle) {
-        // From the spec: "Wait until any invocations of this algorithm started before this one have completed."
-        // So if we're currently running a task, we'll need to delay this invocation.
-        if (currentlyRunningATask) {
-            // Delay by doing a setTimeout. setImmediate was tried instead, but in Firefox 7 it generated a
-            // "too much recursion" error.
-            setTimeout(partiallyApplied(runIfPresent, handle), 0);
-        } else {
-            var task = tasksByHandle[handle];
-            if (task) {
-                currentlyRunningATask = true;
-                try {
-                    task();
-                } finally {
-                    clearImmediate(handle);
-                    currentlyRunningATask = false;
-                }
-            }
-        }
-    }
-
-    function clearImmediate(handle) {
-        delete tasksByHandle[handle];
-    }
-
-    function installNextTickImplementation() {
-        setImmediate = function() {
-            var handle = addFromSetImmediateArguments(arguments);
-            process.nextTick(partiallyApplied(runIfPresent, handle));
-            return handle;
-        };
-    }
-
-    function canUsePostMessage() {
-        // The test against `importScripts` prevents this implementation from being installed inside a web worker,
-        // where `global.postMessage` means something completely different and can't be used for this purpose.
-        if (global.postMessage && !global.importScripts) {
-            var postMessageIsAsynchronous = true;
-            var oldOnMessage = global.onmessage;
-            global.onmessage = function() {
-                postMessageIsAsynchronous = false;
-            };
-            global.postMessage("", "*");
-            global.onmessage = oldOnMessage;
-            return postMessageIsAsynchronous;
-        }
-    }
-
-    function installPostMessageImplementation() {
-        // Installs an event handler on `global` for the `message` event: see
-        // * https://developer.mozilla.org/en/DOM/window.postMessage
-        // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
-
-        var messagePrefix = "setImmediate$" + Math.random() + "$";
-        var onGlobalMessage = function(event) {
-            if (event.source === global &&
-                typeof event.data === "string" &&
-                event.data.indexOf(messagePrefix) === 0) {
-                runIfPresent(+event.data.slice(messagePrefix.length));
-            }
-        };
-
-        if (global.addEventListener) {
-            global.addEventListener("message", onGlobalMessage, false);
-        } else {
-            global.attachEvent("onmessage", onGlobalMessage);
-        }
-
-        setImmediate = function() {
-            var handle = addFromSetImmediateArguments(arguments);
-            global.postMessage(messagePrefix + handle, "*");
-            return handle;
-        };
-    }
-
-    function installMessageChannelImplementation() {
-        var channel = new MessageChannel();
-        channel.port1.onmessage = function(event) {
-            var handle = event.data;
-            runIfPresent(handle);
-        };
-
-        setImmediate = function() {
-            var handle = addFromSetImmediateArguments(arguments);
-            channel.port2.postMessage(handle);
-            return handle;
-        };
-    }
-
-    function installReadyStateChangeImplementation() {
-        var html = doc.documentElement;
-        setImmediate = function() {
-            var handle = addFromSetImmediateArguments(arguments);
-            // Create a <script> element; its readystatechange event will be fired asynchronously once it is inserted
-            // into the document. Do so, thus queuing up the task. Remember to clean up once it's been called.
-            var script = doc.createElement("script");
-            script.onreadystatechange = function () {
-                runIfPresent(handle);
-                script.onreadystatechange = null;
-                html.removeChild(script);
-                script = null;
-            };
-            html.appendChild(script);
-            return handle;
-        };
-    }
-
-    function installSetTimeoutImplementation() {
-        setImmediate = function() {
-            var handle = addFromSetImmediateArguments(arguments);
-            setTimeout(partiallyApplied(runIfPresent, handle), 0);
-            return handle;
-        };
-    }
-
-    // If supported, we should attach to the prototype of global, since that is where setTimeout et al. live.
-    var attachTo = Object.getPrototypeOf && Object.getPrototypeOf(global);
-    attachTo = attachTo && attachTo.setTimeout ? attachTo : global;
-
-    // Don't get fooled by e.g. browserify environments.
-    if ({}.toString.call(global.process) === "[object process]") {
-        // For Node.js before 0.9
-        installNextTickImplementation();
-
-    } else if (canUsePostMessage()) {
-        // For non-IE10 modern browsers
-        installPostMessageImplementation();
-
-    } else if (global.MessageChannel) {
-        // For web workers, where supported
-        installMessageChannelImplementation();
-
-    } else if (doc && "onreadystatechange" in doc.createElement("script")) {
-        // For IE 6–8
-        installReadyStateChangeImplementation();
-
-    } else {
-        // For older browsers
-        installSetTimeoutImplementation();
-    }
-
-    attachTo.setImmediate = setImmediate;
-    attachTo.clearImmediate = clearImmediate;
-}(typeof self === "undefined" ? typeof global === "undefined" ? this : global : self));/**
+/**
  * Base namespace for Skulpt. This is the only symbol that Skulpt adds to the
  * global namespace. Other user accessible symbols are noted and described
  * below.
@@ -5094,9 +4908,6 @@ var Sk = Sk || {}; //jshint ignore:line
  * strings.
  * syspath: Setable to emulate PYTHONPATH environment variable (for finding
  * modules). Should be an array of JS strings.
- * nonreadopen: Boolean - set to true to allow non-read file operations
- * fileopen: Optional function to call any time a file is opened
- * filewrite: Optional function to call when writing to a file
  *
  * Any variables that aren't set will be left alone.
  */
@@ -5114,15 +4925,6 @@ Sk.configure = function (options) {
     Sk.read = options["read"] || Sk.read;
     goog.asserts.assert(typeof Sk.read === "function");
 
-    Sk.nonreadopen = options["nonreadopen"] || false;
-    goog.asserts.assert(typeof Sk.nonreadopen === "boolean");
-
-    Sk.fileopen = options["fileopen"] || undefined;
-    goog.asserts.assert(typeof Sk.fileopen === "function" || typeof Sk.fileopen === "undefined");
-
-    Sk.filewrite = options["filewrite"] || undefined;
-    goog.asserts.assert(typeof Sk.filewrite === "function" || typeof Sk.filewrite === "undefined");
-
     Sk.timeoutMsg = options["timeoutMsg"] || Sk.timeoutMsg;
     goog.asserts.assert(typeof Sk.timeoutMsg === "function");
     goog.exportSymbol("Sk.timeoutMsg", Sk.timeoutMsg);
@@ -5130,97 +4932,23 @@ Sk.configure = function (options) {
     Sk.sysargv = options["sysargv"] || Sk.sysargv;
     goog.asserts.assert(goog.isArrayLike(Sk.sysargv));
 
-    Sk.__future__ = options["__future__"] || {
-        print_function: false,
-        division: false,
-        absolute_import: null,
-        unicode_literals: false,
-        // skulpt specific
-        set_repr: false,
-        class_repr: false,
-        inherit_from_object: false
-    };
-
-    if (Sk.__future__.print_function === undefined || Sk.__future__.print_function === null || typeof Sk.__future__.print_function !== "boolean") {
-        throw new Error("must specify Sk.__future__.print_function and it must be a boolean");
-    }
-
-    if (Sk.__future__.division === undefined || Sk.__future__.division === null || typeof Sk.__future__.division !== "boolean") {
-        throw new Error("must specify Sk.__future__.division and it must be a boolean");
-    }
-
-    if (Sk.__future__.unicode_literals === undefined || Sk.__future__.unicode_literals === null || typeof Sk.__future__.unicode_literals !== "boolean") {
-        throw new Error("must specify Sk.__future__.unicode_literals and it must be a boolean");
-    }
-
-    if (Sk.__future__.set_repr === undefined || Sk.__future__.set_repr === null || typeof Sk.__future__.set_repr !== "boolean") {
-        throw new Error("must specify Sk.__future__.set_repr and it must be a boolean");
-    }
-
-    if (Sk.__future__.class_repr === undefined || Sk.__future__.class_repr === null || typeof Sk.__future__.class_repr !== "boolean") {
-        throw new Error("must specify Sk.__future__.class_repr and it must be a boolean");
-    }
-
-    if (Sk.__future__.inherit_from_object === undefined || Sk.__future__.inherit_from_object === null || typeof Sk.__future__.inherit_from_object !== "boolean") {
-        throw new Error("must specify Sk.__future__.inherit_from_object and it must be a boolean");
-    }
-
-    // in __future__ add checks for absolute_import
+    Sk.python3 = options["python3"] || Sk.python3;
+    goog.asserts.assert(typeof Sk.python3 === "boolean");
 
     Sk.imageProxy = options["imageProxy"] || "http://localhost:8080/320x";
     goog.asserts.assert(typeof Sk.imageProxy === "string");
 
     Sk.inputfun = options["inputfun"] || Sk.inputfun;
     goog.asserts.assert(typeof Sk.inputfun === "function");
-    
+
     Sk.retainGlobals = options["retainglobals"] || false;
     goog.asserts.assert(typeof Sk.retainGlobals === "boolean");
 
     Sk.debugging = options["debugging"] || false;
     goog.asserts.assert(typeof Sk.debugging === "boolean");
 
-    Sk.killableWhile = options["killableWhile"] || false;
-    goog.asserts.assert(typeof Sk.killableWhile === "boolean");
-
-    Sk.killableFor = options["killableFor"] || false;
-    goog.asserts.assert(typeof Sk.killableFor === "boolean");
-
-    Sk.signals = typeof options["signals"] !== undefined ? options["signals"] : null;
-    if (Sk.signals === true) {
-        Sk.signals = {
-            listeners: [],
-            addEventListener: function (handler) {
-                Sk.signals.listeners.push(handler);
-            },
-            removeEventListener: function (handler) {
-                var index = Sk.signals.listeners.indexOf(handler);
-                if (index >= 0) {
-                    Sk.signals.listeners.splice(index, 1); // Remove items
-                }
-            },
-            signal: function (signal, data) {
-                for (var i = 0; i < Sk.signals.listeners.length; i++) {
-                    Sk.signals.listeners[i].call(null, signal, data);
-                }
-            }
-        };
-    } else {
-        Sk.signals = null;
-    }
-    goog.asserts.assert(typeof Sk.signals === "object");
-
     Sk.breakpoints = options["breakpoints"] || function() { return true; };
     goog.asserts.assert(typeof Sk.breakpoints === "function");
-
-    Sk.setTimeout = options["setTimeout"];
-    if (Sk.setTimeout === undefined) {
-        if (typeof setTimeout === "function") {
-            Sk.setTimeout = function(func, delay) { setTimeout(func, delay); };
-        } else {
-            Sk.setTimeout = function(func, delay) { func(); };
-        }
-    }
-    goog.asserts.assert(typeof Sk.setTimeout === "function");
 
     if ("execLimit" in options) {
         Sk.execLimit = options["execLimit"];
@@ -5242,13 +4970,6 @@ Sk.configure = function (options) {
     Sk.misceval.softspace_ = false;
 };
 goog.exportSymbol("Sk.configure", Sk.configure);
-
-/*
-* Replaceable handler for uncaught exceptions
-*/
-Sk.uncaughtException = function(err) {
-    throw err;
-};
 
 /*
  * Replaceable handler for uncaught exceptions
@@ -5341,11 +5062,12 @@ if (!Sk.inBrowser) {
     };
 }
 
+Sk.python3 = false;
 Sk.inputfun = function (args) {
     return window.prompt(args);
 };
 
-goog.exportSymbol("Sk.__future__", Sk.__future__);
+goog.exportSymbol("Sk.python3", Sk.python3);
 goog.exportSymbol("Sk.inputfun", Sk.inputfun);
 goog.require("goog.asserts");
 if(Sk.builtin === undefined) {
@@ -5451,13 +5173,13 @@ Sk.builtin.type = function (name, bases, dict) {
         /**
         * @constructor
         */
-        klass = function (kwdict, varargseq, kws, args, canSuspend, skipInit) {
+        klass = function (kwdict, varargseq, kws, args, canSuspend) {
             var init;
             var self = this;
             var s;
             var args_copy;
             if (!(this instanceof klass)) {
-                return new klass(kwdict, varargseq, kws, args, canSuspend, skipInit);
+                return new klass(kwdict, varargseq, kws, args, canSuspend);
             }
 
             args = args || [];
@@ -5465,7 +5187,7 @@ Sk.builtin.type = function (name, bases, dict) {
 
             if (klass.prototype.tp$base !== undefined) {
                 if (klass.prototype.tp$base.sk$klass) {
-                    klass.prototype.tp$base.call(this, kwdict, varargseq, kws, args.slice(), canSuspend, true);
+                    klass.prototype.tp$base.call(this, kwdict, varargseq, kws, args.slice(), canSuspend);
                 } else {
                     // Call super constructor if subclass of a builtin
                     args_copy = args.slice();
@@ -5475,7 +5197,7 @@ Sk.builtin.type = function (name, bases, dict) {
             }
 
             init = Sk.builtin.type.typeLookup(self.ob$type, "__init__");
-            if (init !== undefined && !skipInit) {
+            if (init !== undefined) {
                 // return should be None or throw a TypeError otherwise
                 args.unshift(self);
                 s = Sk.misceval.applyOrSuspend(init, kwdict, varargseq, kws, args);
@@ -5503,7 +5225,7 @@ Sk.builtin.type = function (name, bases, dict) {
 
         var inheritsFromObject = false, inheritsBuiltin = false;
 
-        if (bases.v.length === 0 && Sk.__future__.inherit_from_object) {
+        if (bases.v.length === 0 && Sk.python3) {
             // new style class, inherits from object by default
             inheritsFromObject = true;
             Sk.abstr.setUpInheritance(_name, klass, Sk.builtin.object);
@@ -5640,20 +5362,20 @@ Sk.builtin.type = function (name, bases, dict) {
             }
             throw new Sk.builtin.TypeError("'" + tname + "' object is not iterable");
         };
-        klass.prototype.tp$iternext = function (canSuspend) {
-            var r;
+        klass.prototype.tp$iternext = function () {
             var iternextf = this.tp$getattr("next");
+            var ret;
             if (iternextf) {
-                r = Sk.misceval.tryCatch(function() {
-                    return Sk.misceval.callsimOrSuspend(iternextf);
-                }, function(e) {
+                try {
+                    ret = Sk.misceval.callsim(iternextf);
+                } catch (e) {
                     if (e instanceof Sk.builtin.StopIteration) {
-                        return undefined;
+                        ret = undefined;
                     } else {
                         throw e;
                     }
-                });
-                return canSuspend ? r : Sk.misceval.retryOptionalSuspensionOrThrow(r);
+                }
+                return ret;
             }
         };
 
@@ -5734,7 +5456,7 @@ Sk.builtin.type.makeIntoTypeObj = function (name, t) {
             cname = mod.v + ".";
         }
         ctype = "class";
-        if (!mod && !t.sk$klass && !Sk.__future__.class_repr) {
+        if (!mod && !t.sk$klass && !Sk.python3) {
             ctype = "type";
         }
         return new Sk.builtin.str("<" + ctype + " '" + cname + t.tp$name + "'>");
@@ -5751,7 +5473,7 @@ Sk.builtin.type.makeIntoTypeObj = function (name, t) {
 Sk.builtin.type.ob$type = Sk.builtin.type;
 Sk.builtin.type.tp$name = "type";
 Sk.builtin.type["$r"] = function () {
-    if(Sk.__future__.class_repr) {
+    if(Sk.python3) {
         return new Sk.builtin.str("<class 'type'>");
     } else {
         return new Sk.builtin.str("<type 'type'>");
@@ -5766,23 +5488,20 @@ Sk.builtin.type["$r"] = function () {
 Sk.builtin.type.prototype.tp$getattr = function (name) {
     var res;
     var tp = this;
-    var descr;
+    var descr = Sk.builtin.type.typeLookup(tp, name);
     var f;
+    //print("type.tpgetattr descr", descr, descr.tp$name, descr.func_code, name);
+    if (descr !== undefined && descr !== null && descr.ob$type !== undefined) {
+        f = descr.ob$type.tp$descr_get;
+        // todo;if (f && descr.tp$descr_set) // is a data descriptor if it has a set
+        // return f.call(descr, this, this.ob$type);
+    }
 
     if (this["$d"]) {
         res = this["$d"].mp$lookup(new Sk.builtin.str(name));
         if (res !== undefined) {
             return res;
         }
-    }
-
-    descr = Sk.builtin.type.typeLookup(tp, name);
-
-    //print("type.tpgetattr descr", descr, descr.tp$name, descr.func_code, name);
-    if (descr !== undefined && descr !== null && descr.ob$type !== undefined) {
-        f = descr.ob$type.tp$descr_get;
-        // todo;if (f && descr.tp$descr_set) // is a data descriptor if it has a set
-        // return f.call(descr, this, this.ob$type);
     }
 
     if (f) {
@@ -6436,22 +6155,17 @@ Sk.abstr.fixSeqIndex_ = function (seq, i) {
     return i;
 };
 
-/**
- * @param {*} seq
- * @param {*} ob
- * @param {boolean=} canSuspend
- */
-Sk.abstr.sequenceContains = function (seq, ob, canSuspend) {
+Sk.abstr.sequenceContains = function (seq, ob) {
+    var it, i;
     var seqtypename;
     var special;
-    var r;
 
     if (seq.sq$contains) {
         return seq.sq$contains(ob);
     }
 
-    /**
-     *  Look for special method and call it, we have to distinguish between built-ins and
+    /** 
+     *  Look for special method and call it, we have to distinguish between built-ins and 
      *  python objects
      */
     special = Sk.abstr.lookupSpecial(seq, "__contains__");
@@ -6465,15 +6179,12 @@ Sk.abstr.sequenceContains = function (seq, ob, canSuspend) {
         throw new Sk.builtin.TypeError("argument of type '" + seqtypename + "' is not iterable");
     }
 
-    r = Sk.misceval.iterFor(Sk.abstr.iter(seq), function(i) {
+    for (it = Sk.abstr.iter(seq), i = it.tp$iternext(); i !== undefined; i = it.tp$iternext()) {
         if (Sk.misceval.richCompareBool(i, ob, "Eq")) {
-            return new Sk.misceval.Break(true);
-        } else {
-            return false;
+            return true;
         }
-    }, false);
-
-    return canSuspend ? r : Sk.misceval.retryOptionalSuspensionOrThrow(r);
+    }
+    return false;
 };
 
 Sk.abstr.sequenceConcat = function (seq1, seq2) {
@@ -6626,7 +6337,7 @@ Sk.abstr.sequenceUnpack = function (seq, n) {
     }
 
     for (it = Sk.abstr.iter(seq), i = it.tp$iternext();
-         (i !== undefined) && (res.length < n);
+         (i !== undefined) && (res.length < n); 
          i = it.tp$iternext()) {
         res.push(i);
     }
@@ -6871,7 +6582,7 @@ Sk.abstr.iter = function(obj) {
 
     /**
      * Builds an iterator around classes that have a __getitem__ method.
-     *
+     * 
      * @constructor
      */
     var seqIter = function (obj) {
@@ -6883,7 +6594,7 @@ Sk.abstr.iter = function(obj) {
             try {
                 ret = Sk.misceval.callsim(this.getitem, this.myobj, Sk.ffi.remapToPy(this.idx));
             } catch (e) {
-                if (e instanceof Sk.builtin.IndexError || e instanceof Sk.builtin.StopIteration) {
+                if (e instanceof Sk.builtin.IndexError) {
                     return undefined;
                 } else {
                     throw e;
@@ -6897,10 +6608,7 @@ Sk.abstr.iter = function(obj) {
     if (obj.tp$getattr) {
         iter =  Sk.abstr.lookupSpecial(obj,"__iter__");
         if (iter) {
-            ret = Sk.misceval.callsim(iter, obj);
-            if (ret.tp$iternext) {
-                return ret;
-            }
+            return Sk.misceval.callsim(iter,obj);
         }
     }
     if (obj.tp$iter) {
@@ -7032,18 +6740,14 @@ Sk.builtin.object.prototype.GenericGetAttr = function (name) {
     tp = this.ob$type;
     goog.asserts.assert(tp !== undefined, "object has no ob$type!");
 
-    dict = this["$d"] || this.constructor["$d"];
     //print("getattr", tp.tp$name, name);
 
+    dict = this["$d"] || this.constructor["$d"];
     descr = Sk.builtin.type.typeLookup(tp, name);
 
     // otherwise, look in the type for a descr
     if (descr !== undefined && descr !== null && descr.ob$type !== undefined) {
         f = descr.ob$type.tp$descr_get;
-        if (!(f) && descr["__get__"]) {
-            f = descr["__get__"];
-            return Sk.misceval.callsimOrSuspend(f, descr, this);
-        }
         // todo;
         //if (f && descr.tp$descr_set) // is a data descriptor if it has a set
         //return f.call(descr, this, this.ob$type);
@@ -7068,16 +6772,6 @@ Sk.builtin.object.prototype.GenericGetAttr = function (name) {
         }
     }
 
-    descr = Sk.builtin.type.typeLookup(tp, name);
-
-    // otherwise, look in the type for a descr
-    if (descr !== undefined && descr !== null && descr.ob$type !== undefined) {
-        f = descr.ob$type.tp$descr_get;
-        // todo;
-        //if (f && descr.tp$descr_set) // is a data descriptor if it has a set
-        //return f.call(descr, this, this.ob$type);
-    }
-
     if (f) {
         // non-data descriptor
         return f.call(descr, this, this.ob$type);
@@ -7100,30 +6794,7 @@ Sk.builtin.object.prototype.GenericSetAttr = function (name, value) {
     var objname = Sk.abstr.typeName(this);
     var pyname;
     var dict;
-    var descr;
-    var tp;
-    var f;
-
     goog.asserts.assert(typeof name === "string");
-
-    tp = this.ob$type;
-    goog.asserts.assert(tp !== undefined, "object has no ob$type!");
-
-    descr = Sk.builtin.type.typeLookup(tp, name);
-
-    // otherwise, look in the type for a descr
-    if (descr !== undefined && descr !== null && descr.ob$type !== undefined) {
-        // f = descr.ob$type.tp$descr_set;
-        if (!(f) && descr["__set__"]) {
-            f = descr["__set__"];
-            Sk.misceval.callsim(f, descr, this, value);
-            return;
-        }
-        // todo;
-        //if (f && descr.tp$descr_set) // is a data descriptor if it has a set
-        //return f.call(descr, this, this.ob$type);
-    }
-
     // todo; lots o' stuff
 
     dict = this["$d"] || this.constructor["$d"];
@@ -7706,10 +7377,6 @@ Sk.builtin.func.prototype.tp$call = function (args, kw) {
                 }
             }
             if (varnames && j !== numvarnames) {
-                if (j in args) {
-                    name = (this.func_code && this.func_code["co_name"] && this.func_code["co_name"].v) || "<native JS>";
-                    throw new Sk.builtin.TypeError(name + "() got multiple values for keyword argument '" + kw[i] + "'");
-                }
                 args[j] = kw[i + 1];
             } else if (expectskw) {
                 // build kwargs dict
@@ -7893,9 +7560,9 @@ Sk.builtin.asnum$nofloat = function (a) {
         a = a.toString();
     }
 
-    //  Sk.debugout("INITIAL: " + a);
+    //	Sk.debugout("INITIAL: " + a);
 
-    //  If not a float, great, just return this
+    //	If not a float, great, just return this
     if (a.indexOf(".") < 0 && a.indexOf("e") < 0 && a.indexOf("E") < 0) {
         return a;
     }
@@ -7916,7 +7583,7 @@ Sk.builtin.asnum$nofloat = function (a) {
 
     decimal = mantissa.indexOf(".");
 
-    //  Simplest case, no decimal
+    //	Simplest case, no decimal
     if (decimal < 0) {
         if (expon >= 0) {
             // Just add more zeroes and we're done
@@ -7933,7 +7600,7 @@ Sk.builtin.asnum$nofloat = function (a) {
         }
     }
 
-    //  Negative exponent OR decimal (neg or pos exp)
+    //	Negative exponent OR decimal (neg or pos exp)
     if (decimal === 0) {
         mantissa = mantissa.substr(1);
     } else if (decimal < mantissa.length) {
@@ -8185,12 +7852,6 @@ Sk.builtin.abs = function abs (x) {
         return Sk.misceval.callsim(x.__abs__, x);
     }
 
-    // call custom __abs__ methods
-    if (x.tp$getattr) {
-        var f = x.tp$getattr("__abs__");
-        return Sk.misceval.callsim(f);
-    }
-
     throw new TypeError("bad operand type for abs(): '" + Sk.abstr.typeName(x) + "'");
 };
 
@@ -8218,24 +7879,6 @@ Sk.builtin.chr = function chr (x) {
     }
 
     return new Sk.builtin.str(String.fromCharCode(x));
-};
-
-Sk.builtin.unichr = function unichr (x) {
-    Sk.builtin.pyCheckArgs("chr", arguments, 1, 1);
-    if (!Sk.builtin.checkInt(x)) {
-        throw new Sk.builtin.TypeError("an integer is required");
-    }
-    x = Sk.builtin.asnum$(x);
-
-    try {
-        return new Sk.builtin.str(String.fromCodePoint(x));
-    }
-    catch (err) {
-        if (err instanceof RangeError) {
-            throw new Sk.builtin.ValueError(err.message);
-        }
-        throw err;
-    }
 };
 
 Sk.builtin.int2str_ = function helper_ (x, radix, prefix) {
@@ -8417,13 +8060,9 @@ Sk.builtin.open = function open (filename, mode, bufsize) {
     if (mode === undefined) {
         mode = new Sk.builtin.str("r");
     }
-
-    if (/\+/.test(mode.v)) {
-        throw "todo; haven't implemented read/write mode";
-    } else if ((mode.v === "w" || mode.v === "wb" || mode.v === "a" || mode.v === "ab") && !Sk.nonreadopen) {
+    if (mode.v !== "r" && mode.v !== "rb") {
         throw "todo; haven't implemented non-read opens";
     }
-
     return new Sk.builtin.file(filename, mode, bufsize);
 };
 
@@ -8484,7 +8123,6 @@ Sk.builtin.isinstance = function isinstance (obj, type) {
 
     return issubclass(obj.ob$type, type);
 };
-
 Sk.builtin.hash = function hash (value) {
     var junk;
     Sk.builtin.pyCheckArgs("hash", arguments, 1, 1);
@@ -8494,23 +8132,30 @@ Sk.builtin.hash = function hash (value) {
         return 0;
     }};
 
-    if (value instanceof Object) {
-        if (Sk.builtin.checkNone(value.tp$hash)) {
-            // python sets the hash function to None , so we have to catch this case here
-            throw new Sk.builtin.TypeError(new Sk.builtin.str("unhashable type: '" + Sk.abstr.typeName(value) + "'"));
-        } else if (value.tp$hash !== undefined) {
-            if (value.$savedHash_) {
-                return value.$savedHash_;
-            }
-            value.$savedHash_ = value.tp$hash();
+    if ((value instanceof Object) && Sk.builtin.checkNone(value.tp$hash)) {
+        // python sets the hash function to None , so we have to catch this case here
+        throw new Sk.builtin.TypeError(new Sk.builtin.str("unhashable type: '" + Sk.abstr.typeName(value) + "'"));
+    }
+
+    if ((value instanceof Object) && (value.tp$hash !== undefined)) {
+        if (value.$savedHash_) {
             return value.$savedHash_;
-        } else {
-            if (value.__id === undefined) {
-                Sk.builtin.hashCount += 1;
-                value.__id = Sk.builtin.hashCount;
-            }
-            return new Sk.builtin.int_(value.__id);
         }
+        value.$savedHash_ = value.tp$hash();
+        return value.$savedHash_;
+    } else if (value instanceof Sk.builtin.bool) {
+        if (value.v) {
+            return new Sk.builtin.int_(1);
+        }
+        return new Sk.builtin.int_(0);
+    } else if (value instanceof Sk.builtin.none) {
+        return new Sk.builtin.int_(0);
+    } else if (value instanceof Object) {
+        if (value.__id === undefined) {
+            Sk.builtin.hashCount += 1;
+            value.__id = Sk.builtin.hashCount;
+        }
+        return new Sk.builtin.int_(value.__id);
     } else if (typeof value === "number" || value === null ||
         value === true || value === false) {
         throw new Sk.builtin.TypeError("unsupported Javascript type");
@@ -8554,11 +8199,33 @@ Sk.builtin.setattr = function setattr (obj, name, value) {
 };
 
 Sk.builtin.raw_input = function (prompt) {
-    var sys = Sk.importModule("sys");
-    if (prompt) {
-        Sk.misceval.callsimOrSuspend(sys["$d"]["stdout"]["write"], sys["$d"]["stdout"], new Sk.builtin.str(prompt));
+    var x, resolution, susp;
+
+    prompt = prompt ? prompt.v : "";
+    x = Sk.inputfun(prompt);
+
+    if (x instanceof Promise) {
+        susp = new Sk.misceval.Suspension();
+
+        susp.resume = function() {
+            return new Sk.builtin.str(resolution);
+        };
+
+        susp.data = {
+            type: "Sk.promise",
+            promise: x.then(function(value) {
+                resolution = value;
+                return value;
+            }, function(err) {
+                resolution = "";
+                return err;
+            })
+        };
+
+        return susp;
+    } else {
+        return new Sk.builtin.str(x);
     }
-    return Sk.misceval.callsimOrSuspend(sys["$d"]["stdin"]["readline"], sys["$d"]["stdin"]);
 };
 
 Sk.builtin.input = Sk.builtin.raw_input;
@@ -8907,54 +8574,6 @@ Sk.builtin.format = function format (value, format_spec) {
     return Sk.abstr.objectFormat(value, format_spec);
 };
 
-Sk.builtin.reversed = function reversed (seq) {
-    Sk.builtin.pyCheckArgs("reversed", arguments, 1, 1);
-
-    var special = Sk.abstr.lookupSpecial(seq, "__reversed__");
-    if (special != null) {
-        return Sk.misceval.callsim(special, seq);
-    } else {
-        if (!Sk.builtin.checkSequence(seq)) {
-            throw new Sk.builtin.TypeError("'" + Sk.abstr.typeName(seq) + "' object is not a sequence");
-        }
-
-        /**
-         * Builds an iterator that outputs the items form last to first.
-         *
-         * @constructor
-         */
-        var reverseIter = function (obj) {
-            this.idx = obj.sq$length() - 1;
-            this.myobj = obj;
-            this.getitem = Sk.abstr.lookupSpecial(obj, "__getitem__");
-            this.tp$iter = function() {
-                return this;
-            },
-            this.tp$iternext = function () {
-                var ret;
-
-                if (this.idx < 0) {
-                    return undefined;
-                }
-
-                try {
-                    ret = Sk.misceval.callsim(this.getitem, this.myobj, Sk.ffi.remapToPy(this.idx));
-                } catch (e) {
-                    if (e instanceof Sk.builtin.IndexError) {
-                        return undefined;
-                    } else {
-                        throw e;
-                    }
-                }
-                this.idx--;
-                return ret;
-            };
-        };
-
-        return new reverseIter(seq);
-    }
-};
-
 Sk.builtin.bytearray = function bytearray () {
     throw new Sk.builtin.NotImplementedError("bytearray is not yet implemented");
 };
@@ -8994,6 +8613,12 @@ Sk.builtin.property = function property () {
 Sk.builtin.reload = function reload () {
     throw new Sk.builtin.NotImplementedError("reload is not yet implemented");
 };
+Sk.builtin.reversed = function reversed () {
+    throw new Sk.builtin.NotImplementedError("reversed is not yet implemented");
+};
+Sk.builtin.unichr = function unichr () {
+    throw new Sk.builtin.NotImplementedError("unichr is not yet implemented");
+};
 Sk.builtin.vars = function vars () {
     throw new Sk.builtin.NotImplementedError("vars is not yet implemented");
 };
@@ -9021,69 +8646,6 @@ Sk.builtin.intern = function intern () {
  };
  Sk.builtinFiles = undefined;
  */
-/*! https://mths.be/fromcodepoint v0.2.1 by @mathias */
-if (!String.fromCodePoint) {
-    (function() {
-        var defineProperty = (function() {
-            // IE 8 only supports `Object.defineProperty` on DOM elements
-            var result;
-            try {
-                var object = {};
-                var $defineProperty = Object.defineProperty;
-                result = $defineProperty(object, "foo", object) && $defineProperty;
-            } catch(error) {}
-            return result;
-        }());
-        var stringFromCharCode = String.fromCharCode;
-        var floor = Math.floor;
-        var fromCodePoint = function(_) {
-            var MAX_SIZE = 0x4000;
-            var codeUnits = [];
-            var highSurrogate;
-            var lowSurrogate;
-            var index = -1;
-            var length = arguments.length;
-            if (!length) {
-                return "";
-            }
-            var result = "";
-            while (++index < length) {
-                var codePoint = Number(arguments[index]);
-                if (
-                    !isFinite(codePoint) || // `NaN`, `+Infinity`, or `-Infinity`
-                    codePoint < 0 || // not a valid Unicode code point
-                    codePoint > 0x10FFFF || // not a valid Unicode code point
-                    floor(codePoint) != codePoint // not an integer
-                ) {
-                    throw RangeError("Invalid code point: " + codePoint);
-                }
-                if (codePoint <= 0xFFFF) { // BMP code point
-                    codeUnits.push(codePoint);
-                } else { // Astral code point; split in surrogate halves
-                    // https://mathiasbynens.be/notes/javascript-encoding#surrogate-formulae
-                    codePoint -= 0x10000;
-                    highSurrogate = (codePoint >> 10) + 0xD800;
-                    lowSurrogate = (codePoint % 0x400) + 0xDC00;
-                    codeUnits.push(highSurrogate, lowSurrogate);
-                }
-                if (index + 1 == length || codeUnits.length > MAX_SIZE) {
-                    result += stringFromCharCode.apply(null, codeUnits);
-                    codeUnits.length = 0;
-                }
-            }
-            return result;
-        };
-        if (defineProperty) {
-            defineProperty(String, "fromCodePoint", {
-                "value": fromCodePoint,
-                "configurable": true,
-                "writable": true
-            });
-        } else {
-            String.fromCodePoint = fromCodePoint;
-        }
-    }());
-}
 /*
  * The filename, line number, and column number of exceptions are
  * stored within the exception object.  Note that not all exceptions
@@ -9627,23 +9189,6 @@ Sk.builtin.SystemError = function (args) {
 Sk.abstr.setUpInheritance("SystemError", Sk.builtin.SystemError, Sk.builtin.StandardError);
 goog.exportSymbol("Sk.builtin.SystemError", Sk.builtin.SystemError);
 
-/**
- * @constructor
- * @extends Sk.builtin.Exception
- * @param {...*} args
- */
-Sk.builtin.StopIteration = function (args) {
-    var o;
-    if (!(this instanceof Sk.builtin.StopIteration)) {
-        o = Object.create(Sk.builtin.StopIteration.prototype);
-        o.constructor.apply(o, arguments);
-        return o;
-    }
-    Sk.builtin.Exception.apply(this, arguments);
-};
-Sk.abstr.setUpInheritance("StopIteration", Sk.builtin.StopIteration, Sk.builtin.Exception);
-goog.exportSymbol("Sk.builtin.StopIteration", Sk.builtin.StopIteration);
-
 
 goog.exportSymbol("Sk", Sk);
 /*jshint loopfunc: true */
@@ -9707,17 +9252,64 @@ Sk.builtin.method = function (func, self) {
 goog.exportSymbol("Sk.builtin.method", Sk.builtin.method);
 
 Sk.builtin.method.prototype.tp$call = function (args, kw) {
+    var j;
+    var i;
+    var numvarnames;
+    var varnames;
+    var kwlen;
+    var kwargsarr;
+    var expectskw;
+    var name;
+
     goog.asserts.assert(this.im_self, "should just be a function, not a method since there's no self?");
     goog.asserts.assert(this.im_func instanceof Sk.builtin.func);
 
-    // 'args' and 'kw' get mucked around with heavily in applyOrSuspend();
-    // changing it here is OK.
+    // TODO: This function has an awful lot in common with Sk.builtin.func.prototype.tp$call.
+    // Should we just unshift this.im_self onto the front of args and call that function
+    // instead?
+
+    //print("calling method");
+    // todo; modification OK?
     args.unshift(this.im_self);
 
-    // A method call is just a call to this.im_func with 'self' on the beginning of the args.
-    // Do the necessary.
+    expectskw = this.im_func.func_code["co_kwargs"];
+    kwargsarr = [];
 
-    return this.im_func.tp$call(args, kw);
+    if (this.im_func.func_code["no_kw"]) {
+        name = (this.im_func.func_code["co_name"] && this.im_func.func_code["co_name"].v) || "<native JS>";
+        throw new Sk.builtin.TypeError(name + "() takes no keyword arguments");
+    }
+
+    if (kw) {
+        // bind the kw args
+        kwlen = kw.length;
+        varnames = this.im_func.func_code["co_varnames"];
+        numvarnames = varnames && varnames.length;
+        for (i = 0; i < kwlen; i += 2) {
+            // todo; make this a dict mapping name to offset
+            for (j = 0; j < numvarnames; ++j) {
+                if (kw[i] === varnames[j]) {
+                    break;
+                }
+            }
+            if (varnames && j !== numvarnames) {
+                args[j] = kw[i + 1];
+            } else if (expectskw) {
+                // build kwargs dict
+                kwargsarr.push(new Sk.builtin.str(kw[i]));
+                kwargsarr.push(kw[i + 1]);
+            } else {
+                name = (this.im_func.func_code && this.im_func.func_code["co_name"] && this.im_func.func_code["co_name"].v) || "<native JS>";
+                throw new Sk.builtin.TypeError(name + "() got an unexpected keyword argument '" + kw[i] + "'");
+            }
+        }
+    }
+    if (expectskw) {
+        args.unshift(kwargsarr);
+    }
+
+    // note: functions expect globals to be their "this". see compile.js and function.js also
+    return this.im_func.func_code.apply(this.im_func.func_globals, args);
 };
 
 Sk.builtin.method.prototype["$r"] = function () {
@@ -9938,13 +9530,8 @@ Sk.misceval.swappedOp_ = {
     "NotIn": "In_"
 };
 
-/**
-* @param{*} v
-* @param{*} w
-* @param{string} op
-* @param{boolean=} canSuspend
- */
-Sk.misceval.richCompareBool = function (v, w, op, canSuspend) {
+
+Sk.misceval.richCompareBool = function (v, w, op) {
     // v and w must be Python objects. will return Javascript true or false for internal use only
     // if you want to return a value from richCompareBool to Python you must wrap as Sk.builtin.bool first
     var wname,
@@ -9952,12 +9539,7 @@ Sk.misceval.richCompareBool = function (v, w, op, canSuspend) {
         ret,
         swapped_method,
         method,
-        swapped_shortcut,
-        shortcut,
-        v_has_shortcut,
-        w_has_shortcut,
         op2method,
-        op2shortcut,
         vcmp,
         wcmp,
         w_seq_type,
@@ -10095,40 +9677,12 @@ Sk.misceval.richCompareBool = function (v, w, op, canSuspend) {
     }
 
     if (op === "In") {
-        return Sk.misceval.chain(Sk.abstr.sequenceContains(w, v, canSuspend), Sk.misceval.isTrue);
+        return Sk.misceval.isTrue(Sk.abstr.sequenceContains(w, v));
     }
     if (op === "NotIn") {
-        return Sk.misceval.chain(Sk.abstr.sequenceContains(w, v, canSuspend),
-                                 function(x) { return !Sk.misceval.isTrue(x); });
+        return !Sk.misceval.isTrue(Sk.abstr.sequenceContains(w, v));
     }
 
-    // Call Javascript shortcut method if exists for either object
-
-    op2shortcut = {
-        "Eq"   : "ob$eq",
-        "NotEq": "ob$ne",
-        "Gt"   : "ob$gt",
-        "GtE"  : "ob$ge",
-        "Lt"   : "ob$lt",
-        "LtE"  : "ob$le"
-    };
-
-    shortcut = op2shortcut[op];
-    v_has_shortcut = v.constructor.prototype.hasOwnProperty(shortcut);
-    if (v_has_shortcut) {
-        if ((ret = v[shortcut](w)) !== Sk.builtin.NotImplemented.NotImplemented$) {
-            return Sk.misceval.isTrue(ret);
-        }
-    }
-
-    swapped_shortcut = op2shortcut[Sk.misceval.swappedOp_[op]];
-    w_has_shortcut = w.constructor.prototype.hasOwnProperty(swapped_shortcut);
-    if (w_has_shortcut) {
-
-        if ((ret = w[swapped_shortcut](v)) !== Sk.builtin.NotImplemented.NotImplemented$) {
-            return Sk.misceval.isTrue(ret);
-        }
-    }
 
     // use comparison methods if they are given for either object
     if (v.tp$richcompare && (ret = v.tp$richcompare(w, op)) !== undefined) {
@@ -10157,7 +9711,7 @@ Sk.misceval.richCompareBool = function (v, w, op, canSuspend) {
     };
 
     method = Sk.abstr.lookupSpecial(v, op2method[op]);
-    if (method && !v_has_shortcut) {
+    if (method) {
         ret = Sk.misceval.callsim(method, v, w);
         if (ret != Sk.builtin.NotImplemented.NotImplemented$) {
             return Sk.misceval.isTrue(ret);
@@ -10165,7 +9719,7 @@ Sk.misceval.richCompareBool = function (v, w, op, canSuspend) {
     }
 
     swapped_method = Sk.abstr.lookupSpecial(w, op2method[Sk.misceval.swappedOp_[op]]);
-    if (swapped_method && !w_has_shortcut) {
+    if (swapped_method) {
         ret = Sk.misceval.callsim(swapped_method, w, v);
         if (ret != Sk.builtin.NotImplemented.NotImplemented$) {
             return Sk.misceval.isTrue(ret);
@@ -10393,8 +9947,7 @@ Sk.misceval.print_ = function (x) {
         Sk.misceval.softspace_ = false;
     }
     s = new Sk.builtin.str(x);
-    var sys = Sk.importModule("sys");
-    Sk.misceval.apply(sys["$d"]["stdout"]["write"], undefined, undefined, undefined, [sys["$d"]["stdout"], s]);
+    Sk.output(s.v);
     isspace = function (c) {
         return c === "\n" || c === "\t" || c === "\r";
     };
@@ -10621,11 +10174,7 @@ Sk.misceval.asyncToPromise = function(suspendablefn, suspHandlers) {
                 try {
                     // jsh*nt insists these be defined outside the loop
                     var resume = function() {
-                        try {
-                            handleResponse(r.resume());
-                        } catch (e) {
-                            reject(e);
-                        }
+                        handleResponse(r.resume());
                     };
                     var resumeWithData = function resolved(x) {
                         try {
@@ -10661,16 +10210,8 @@ Sk.misceval.asyncToPromise = function(suspendablefn, suspHandlers) {
                             r.data["promise"].then(resumeWithData, resumeWithError);
                             return;
 
-                        } else if (r.data["type"] == "Sk.yield") {
-                            // Assumes all yields are optional, as Sk.setTimeout might
-                            // not be able to yield.
-                            //Sk.setTimeout(resume, 0);
-                            setImmediate(resume);
-                            return;
-
-                        } else if (r.data["type"] == "Sk.delay") {
-                            //Sk.setTimeout(resume, 1);
-                            setImmediate(resume);
+                        } else if (r.data["type"] == "Sk.yield" && typeof setTimeout === "function") {
+                            setTimeout(resume, 0);
                             return;
 
                         } else if (r.optional) {
@@ -10726,15 +10267,7 @@ goog.exportSymbol("Sk.misceval.applyAsync", Sk.misceval.applyAsync);
  */
 
 Sk.misceval.chain = function (initialValue, chainedFns) {
-    // as per the discussion here: https://github.com/skulpt/skulpt/pull/552
-    // this is here for performance reasons. array.slice doesn't get optimized
-    var fs = new Array(arguments.length), i = 1;
-
-    for (i = 1; i < arguments.length; i++) {
-        fs[i] = arguments[i];
-    }
-
-    i = 1;
+    var fs = arguments, i = 1;
 
     return (function nextStep(r) {
         while (i < fs.length) {
@@ -10750,104 +10283,6 @@ Sk.misceval.chain = function (initialValue, chainedFns) {
     })(initialValue);
 };
 goog.exportSymbol("Sk.misceval.chain", Sk.misceval.chain);
-
-
-/**
- * Catch any exceptions thrown by a function, or by resuming any suspension it
- * returns.
- *
- *     var result = Sk.misceval.tryCatch(asyncFunc, function(err) {
- *       console.log(err);
- *     });
- *
- * Because exceptions are returned asynchronously aswell you can't catch them
- * with a try/catch. That's what this function is for.
- */
-Sk.misceval.tryCatch = function (tryFn, catchFn) {
-    var r;
-
-    try {
-        r = tryFn();
-    } catch(e) {
-        return catchFn(e);
-    }
-
-    if (r instanceof Sk.misceval.Suspension) {
-        var susp = new Sk.misceval.Suspension(undefined, r);
-        susp.resume = function() { return Sk.misceval.tryCatch(r.resume, catchFn); };
-        return susp;
-    } else {
-        return r;
-    }
-};
-goog.exportSymbol("Sk.misceval.tryCatch", Sk.misceval.tryCatch);
-
-/**
- * Perform a suspension-aware for-each on an iterator, without
- * blowing up the stack.
- * forFn() is called for each element in the iterator, with two
- * arguments: the current element and the previous return value
- * of forFn() (or initialValue on the first call). In this way,
- * iterFor() can be used as a simple for loop, or alternatively
- * as a 'reduce' operation. The return value of the final call to
- * forFn() will be the return value of iterFor() (after all
- * suspensions are resumed, that is; if the iterator is empty then
- * initialValue will be returned.)
- *
- * The iteration can be terminated early, by returning
- * an instance of Sk.misceval.Break. If an argument is given to
- * the Sk.misceval.Break() constructor, that value will be
- * returned from iterFor(). It is therefore possible to use
- * iterFor() on infinite iterators.
- *
- * @param {*} iter
- * @param {function(*,*=)} forFn
- * @param {*=} initialValue
- */
-Sk.misceval.iterFor = function (iter, forFn, initialValue) {
-    var prevValue = initialValue;
-
-    var breakOrIterNext = function(r) {
-        prevValue = r;
-        return (r instanceof Sk.misceval.Break) ? r : iter.tp$iternext(true);
-    };
-
-    return (function nextStep(i) {
-        while (i !== undefined) {
-            if (i instanceof Sk.misceval.Suspension) {
-                return new Sk.misceval.Suspension(nextStep, i);
-            }
-
-            if (i === Sk.misceval.Break || i instanceof Sk.misceval.Break) {
-                return i.brValue;
-            }
-
-            i = Sk.misceval.chain(
-                forFn(i, prevValue),
-                breakOrIterNext
-            );
-        }
-        return prevValue;
-    })(iter.tp$iternext(true));
-};
-goog.exportSymbol("Sk.misceval.iterFor", Sk.misceval.iterFor);
-
-/**
- * A special value to return from an iterFor() function,
- * to abort the iteration. Optionally supply a value for iterFor() to return
- * (defaults to 'undefined')
- *
- * @constructor
- * @param {*=}  brValue
- */
-Sk.misceval.Break = function(brValue) {
-    if (!(this instanceof Sk.misceval.Break)) {
-        return new Sk.misceval.Break(brValue);
-    }
-
-    this.brValue = brValue;
-};
-goog.exportSymbol("Sk.misceval.Break", Sk.misceval.Break);
 
 /**
  * same as Sk.misceval.call except args is an actual array, rather than
@@ -10886,15 +10321,8 @@ Sk.misceval.applyOrSuspend = function (func, kwdict, varargseq, kws, args) {
         }
 
         if (kwdict) {
-            for (it = Sk.abstr.iter(kwdict), i = it.tp$iternext(); i!== undefined; i = it.tp$iternext()) {
-                if (!Sk.builtin.checkString(i)) {
-                    throw new Sk.builtin.TypeError("Function keywords must be strings");
-                }
-                kws.push(i.v);
-                kws.push(Sk.abstr.objectGetItem(kwdict, i, false));
-            }
+            goog.asserts.fail("kwdict not implemented;");
         }
-
         //goog.asserts.assert(((kws === undefined) || (kws.length === 0)));
         //print('kw args location: '+ kws + ' args ' + args.length)
         if (kws !== undefined && kws.length > 0) {
@@ -10926,15 +10354,6 @@ Sk.misceval.applyOrSuspend = function (func, kwdict, varargseq, kws, args) {
         //append kw args to args, filling in the default value where none is provided.
         return func.apply(null, args);
     } else {
-        fcall = func.__get__;
-        if (fcall !== undefined) {
-            fcall = Sk.misceval.callsim(func.__get__, func, func);
-            //args.unshift(func);
-            if (fcall.tp$call) {
-                return fcall.tp$call.call(fcall, args);
-            }
-        }
-
         fcall = func.tp$call;
         if (fcall !== undefined) {
             if (varargseq) {
@@ -10942,15 +10361,8 @@ Sk.misceval.applyOrSuspend = function (func, kwdict, varargseq, kws, args) {
                     args.push(i);
                 }
             }
-
             if (kwdict) {
-                for (it = Sk.abstr.iter(kwdict), i = it.tp$iternext(); i!== undefined; i = it.tp$iternext()) {
-                    if (!Sk.builtin.checkString(i)) {
-                        throw new Sk.builtin.TypeError("Function keywords must be strings");
-                    }
-                    kws.push(i.v);
-                    kws.push(Sk.abstr.objectGetItem(kwdict, i, false));
-                }
+                goog.asserts.fail("kwdict not implemented;");
             }
             return fcall.call(func, args, kws, kwdict);
         }
@@ -10962,7 +10374,7 @@ Sk.misceval.applyOrSuspend = function (func, kwdict, varargseq, kws, args) {
             // func is actually the object here because we got __call__
             // from it. todo; should probably use descr_get here
             args.unshift(func);
-            return Sk.misceval.apply(fcall, kwdict, varargseq, kws, args);
+            return Sk.misceval.apply(fcall, kws, args, kwdict, varargseq);
         }
         throw new Sk.builtin.TypeError("'" + Sk.abstr.typeName(func) + "' object is not callable");
     }
@@ -12232,7 +11644,6 @@ Sk.builtin.str.prototype["rpartition"] = new Sk.builtin.func(function (self, sep
 });
 
 Sk.builtin.str.prototype["count"] = new Sk.builtin.func(function (self, pat, start, end) {
-    var normaltext;
     var ctl;
     var slice;
     var m;
@@ -12261,8 +11672,7 @@ Sk.builtin.str.prototype["count"] = new Sk.builtin.func(function (self, pat, sta
         end = end >= 0 ? end : self.v.length + end;
     }
 
-    normaltext = pat.v.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-    m = new RegExp(normaltext, "g");
+    m = new RegExp(pat.v, "g");
     slice = self.v.slice(start, end);
     ctl = slice.match(m);
     if (!ctl) {
@@ -13439,8 +12849,7 @@ Sk.builtin.tuple.prototype.tp$richcompare = function (w, op) {
     var wl;
     var vl;
     var v;
-    if (!w.__class__ ||
-        !Sk.misceval.isTrue(Sk.builtin.isinstance(w, Sk.builtin.tuple))) {
+    if (!w.__class__ || !Sk.builtin.isinstance(w, Sk.builtin.tuple)) {
         // shortcuts for eq/not
         if (op === "Eq") {
             return false;
@@ -13746,7 +13155,7 @@ Sk.builtin.dict.prototype.tp$iter = function () {
     for (k in this) {
         if (this.hasOwnProperty(k)) {
             bucket = this[k];
-            if (bucket && bucket.$hash !== undefined && bucket.items !== undefined) {
+            if (bucket && bucket.$hash !== undefined) {
                 // skip internal stuff. todo; merge pyobj and this
                 for (i = 0; i < bucket.items.length; i++) {
                     allkeys.push(bucket.items[i].lhs);
@@ -14040,8 +13449,7 @@ Sk.builtin.dict.prototype.__len__ = new Sk.builtin.func(function (self) {
 
 Sk.builtin.dict.prototype.__getattr__ = new Sk.builtin.func(function (self, attr) {
     Sk.builtin.pyCheckArgs("__getattr__", arguments, 1, 1, false, true);
-    if (!Sk.builtin.checkString(attr)) { throw new Sk.builtin.TypeError("__getattr__ requires a string"); }
-    return Sk.builtin.dict.prototype.tp$getattr.call(self, Sk.ffi.remapToJs(attr));
+    return Sk.builtin.dict.prototype.tp$getattr.call(self, attr);
 });
 
 Sk.builtin.dict.prototype.__iter__ = new Sk.builtin.func(function (self) {
@@ -14101,24 +13509,7 @@ Sk.builtin.dict.prototype.ob$ne = function (other) {
 };
 
 Sk.builtin.dict.prototype["copy"] = new Sk.builtin.func(function (self) {
-    Sk.builtin.pyCheckArgs("copy", arguments, 0, 0, false, true);
-
-    var it; // Iterator
-    var k; // Key of dict item
-    var v; // Value of dict item
-    var newCopy = new Sk.builtin.dict([]);
-
-    for (it = Sk.abstr.iter(self), k = it.tp$iternext();
-            k !== undefined;
-            k = it.tp$iternext()) {
-        v = self.mp$subscript(k);
-        if (v === undefined) {
-            v = null;
-        }
-        newCopy.mp$ass_subscript(k, v);
-    }
-
-    return newCopy;
+    throw new Sk.builtin.NotImplementedError("dict.copy is not yet implemented in Skulpt");
 });
 
 Sk.builtin.dict.prototype["fromkeys"] = new Sk.builtin.func(function (seq, value) {
@@ -16987,27 +16378,7 @@ Sk.builtin.int_.prototype.nb$reflected_multiply = function (other) {
 
 /** @override */
 Sk.builtin.int_.prototype.nb$divide = function (other) {
-    var thisAsLong, thisAsFloat;
-    if (Sk.__future__.division) {
-        thisAsFloat = new Sk.builtin.float_(this.v);
-        return thisAsFloat.nb$divide(other);
-    }
-
-    if (other instanceof Sk.builtin.int_) {
-        return this.nb$floor_divide(other);
-    }
-
-    if (other instanceof Sk.builtin.lng) {
-        thisAsLong = new Sk.builtin.lng(this.v);
-        return thisAsLong.nb$divide(other);
-    }
-
-    if (other instanceof Sk.builtin.float_) {
-        thisAsFloat = new Sk.builtin.float_(this.v);
-        return thisAsFloat.nb$divide(other);
-    }
-
-    return Sk.builtin.NotImplemented.NotImplemented$;
+    return this.nb$floor_divide(other);
 };
 
 /** @override */
@@ -17030,12 +16401,12 @@ Sk.builtin.int_.prototype.nb$floor_divide = function (other) {
 
     if (other instanceof Sk.builtin.lng) {
         thisAsLong = new Sk.builtin.lng(this.v);
-        return thisAsLong.nb$floor_divide(other);
+        return thisAsLong.nb$divide(other);
     }
 
     if (other instanceof Sk.builtin.float_) {
         thisAsFloat = new Sk.builtin.float_(this.v);
-        return thisAsFloat.nb$floor_divide(other);
+        return thisAsFloat.nb$divide(other);
     }
 
     return Sk.builtin.NotImplemented.NotImplemented$;
@@ -17054,14 +16425,21 @@ Sk.builtin.int_.prototype.nb$reflected_floor_divide = function (other) {
 Sk.builtin.int_.prototype.nb$remainder = function (other) {
     var thisAsLong, thisAsFloat;
     var tmp;
-    var divResult;
 
     if (other instanceof Sk.builtin.int_) {
+
         //  Javacript logic on negatives doesn't work for Python... do this instead
-        divResult = Sk.abstr.numberBinOp(this, other, "FloorDiv");
-        tmp = Sk.abstr.numberBinOp(divResult, other, "Mult");
-        tmp = Sk.abstr.numberBinOp(this, tmp, "Sub");
-        tmp = tmp.v;
+        tmp = this.v % other.v;
+
+        if (this.v < 0) {
+            if (other.v > 0 && tmp < 0) {
+                tmp = tmp + other.v;
+            }
+        } else {
+            if (other.v < 0 && tmp !== 0) {
+                tmp = tmp + other.v;
+            }
+        }
 
         if (other.v < 0 && tmp === 0) {
             tmp = -0.0; // otherwise the sign gets lost by javascript modulo
@@ -17660,10 +17038,6 @@ Sk.builtin.int_.prototype.__round__ = function (self, ndigits) {
 
     return new Sk.builtin.int_(result);
 };
-
-Sk.builtin.int_.prototype.conjugate = new Sk.builtin.func(function (self) {
-    return new Sk.builtin.int_(self.v);
-});
 
 /** @override */
 Sk.builtin.int_.prototype["$r"] = function () {
@@ -18654,10 +18028,6 @@ Sk.builtin.float_.prototype.__round__ = function (self, ndigits) {
     return new Sk.builtin.float_(result);
 };
 
-Sk.builtin.float_.prototype.conjugate = new Sk.builtin.func(function (self) {
-    return new Sk.builtin.float_(self.v);
-});
-
 /** @override */
 Sk.builtin.float_.prototype["$r"] = function () {
     return new Sk.builtin.str(this.str$(10, true));
@@ -19197,10 +18567,6 @@ Sk.builtin.lng.prototype.toInt$ = function () {
 Sk.builtin.lng.prototype.clone = function () {
     return new Sk.builtin.lng(this);
 };
-
-Sk.builtin.lng.prototype.conjugate = new Sk.builtin.func(function (self) {
-    return self.clone();
-});
 
 Sk.builtin.lng.prototype.nb$add = function (other) {
     var thisAsFloat;
@@ -21272,8 +20638,7 @@ Sk.builtin.set.prototype["$r"] = function () {
     for (it = Sk.abstr.iter(this), i = it.tp$iternext(); i !== undefined; i = it.tp$iternext()) {
         ret.push(Sk.misceval.objectRepr(i).v);
     }
-
-    if(Sk.__future__.set_repr) {
+    if(Sk.python3) {
         return new Sk.builtin.str("{" + ret.join(", ") + "}");
     } else {
         return new Sk.builtin.str("set([" + ret.join(", ") + "])");
@@ -21618,8 +20983,7 @@ var print_f = function function_print(kwa) {
         // currently not tested, though it seems that we need to see how we should access the write function in a correct manner
         Sk.misceval.callsim(kw_list.file.write, kw_list.file, new Sk.builtin.str(s)); // callsim to write function
     } else {
-        var sys = Sk.importModule("sys");
-        Sk.misceval.apply(sys["$d"]["stdout"]["write"], undefined, undefined, undefined, [sys["$d"]["stdout"], new Sk.builtin.str(s)]);
+        Sk.output(s); // call configurable output function
     }
 
     // ToDo:
@@ -21642,48 +21006,49 @@ Sk.builtin.module.prototype.tp$getattr = Sk.builtin.object.prototype.GenericGetA
 Sk.builtin.module.prototype.tp$setattr = Sk.builtin.object.prototype.GenericSetAttr;
 Sk.builtin.structseq_types = {};
 
-Sk.builtin.make_structseq = function (module, name, fields, doc) {
+Sk.builtin.make_structseq = function (module, name, fields) {
     var nm = module + "." + name;
-    var flds = [];
-    var docs = [];
-    var i;
-    for (var key in fields) {
-        flds.push(key);
-        docs.push(fields[key]);
-    }
+    var flds = fields;
 
-    var cons = function structseq_constructor(arg) {
+    var cons = function structseq_constructor(args) {
         Sk.builtin.pyCheckArgs(nm, arguments, 1, 1);
         var o;
-        var it, i, v;
         if (!(this instanceof Sk.builtin.structseq_types[nm])) {
             o = Object.create(Sk.builtin.structseq_types[nm].prototype);
             o.constructor.apply(o, arguments);
             return o;
         }
-
-        if (Object.prototype.toString.apply(arg) === "[object Array]") {
-            v = arg;
+        var it, i;
+        if (Object.prototype.toString.apply(args) === "[object Array]") {
+            this.v = args;
         } else {
-            v = [];
-            for (it = Sk.abstr.iter(arg), i = it.tp$iternext(); i !== undefined; i = it.tp$iternext()) {
-                v.push(i);
-            }
-            if (v.length != flds.length) {
-                throw new Sk.builtin.TypeError(nm + "() takes a " + flds.length + "-sequence (" + v.length + "-sequence given)");
-            }
+            this.v = [];
+            if (args.tp$iter) {
+                var cnt = 0;
+                for (it = args.tp$iter(), i = it.tp$iternext(); i !== undefined && cnt < flds.length; i = it.tp$iternext()) {
+                    this.v.push(i);
+                    cnt++;
+                }
+                if (cnt < flds.length) {
+                    throw new Sk.builtin.TypeError(nm + "() takes a " + flds.length + "-sequence (" + cnt + "-sequence given)");
+                }
+            } else if (args.__getitem__) {
+                for(var idx=0; idx<=flds.length; idx++) {
+                    Sk.misceval.apply(args.__getitem__, undefined, undefined, undefined, [Sk.builtin.asnum$(idx)]);
+                }
+            }  else {
+                throw new Sk.builtin.TypeError("constructor requires a sequence");
+            } 
         }
 
-        Sk.builtin.tuple.call(this, v);
+        Sk.builtin.tuple.apply(this, arguments);
 
         this.__class__ = Sk.builtin.structseq_types[nm];
     };
+    cons["co_kwargs"] = true;
     Sk.builtin.structseq_types[nm] = cons;
 
     goog.inherits(cons, Sk.builtin.tuple);
-    if (doc) {
-        cons.prototype.__doc__ = doc;
-    }
     cons.prototype.tp$name = nm;
     cons.prototype.ob$type = Sk.builtin.type.makeIntoTypeObj(nm, Sk.builtin.structseq_types[nm]);
     cons.prototype.ob$type["$d"] = new Sk.builtin.dict([]);
@@ -21694,9 +21059,15 @@ Sk.builtin.make_structseq = function (module, name, fields, doc) {
     cons.prototype.__getitem__ = new Sk.builtin.func(function (self, index) {
         return Sk.builtin.tuple.prototype.mp$subscript.call(self, index);
     });
-    cons.prototype.__reduce__ = new Sk.builtin.func(function (self) {
-        throw new Sk.builtin.Exception("__reduce__ is not implemented");
-    });
+
+    function makeGetter(i) {
+        return function() {
+            return this.v[i];
+        };
+    }
+    for(var i=0; i<flds.length; i++) {
+        cons.prototype[flds[i]] = makeGetter;
+    }
 
     cons.prototype["$r"] = function () {
         var ret;
@@ -21716,15 +21087,9 @@ Sk.builtin.make_structseq = function (module, name, fields, doc) {
         return new Sk.builtin.str(nm + "(" + ret + ")");
     };
     cons.prototype.tp$setattr = function (name, value) {
-        throw new Sk.builtin.AttributeError("readonly property");
-    };
-
-    cons.prototype.tp$getattr = function (name) {
         var i = flds.indexOf(name);
         if (i >= 0) {
-            return this.v[i];
-        } else {
-            return  Sk.builtin.object.prototype.GenericGetAttr(name);
+            this.v[i] = value;
         }
     };
 
@@ -21875,54 +21240,33 @@ Sk.builtin.file = function (name, mode, buffering) {
         return new Sk.builtin.file(name, mode, buffering);
     }
 
+
     this.mode = mode;
-    this.name = Sk.ffi.remapToJs(name);
+    this.name = name;
     this.closed = false;
-
-    if (this.name === "/dev/stdout") {
-        this.data$ = Sk.builtin.none.none$;
-        this.fileno = 1;
-    } else if (this.name === "/dev/stdin") {
-        this.fileno = 0;
-    } else if (this.name === "/dev/stderr") {
-        this.fileno = 2;
-    } else {
-        if (Sk.inBrowser) {  // todo:  Maybe provide a replaceable function for non-import files
-            this.fileno = 10;
-            elem = document.getElementById(name.v);
-            if (elem == null) {
-                if (mode.v == "w" || mode.v == "a") {
-                    this.data$ = "";
-                } else {
-                    throw new Sk.builtin.IOError("[Errno 2] No such file or directory: '" + name.v + "'");
-                }
-            } else {
-                if (elem.nodeName.toLowerCase() == "textarea") {
-                    this.data$ = elem.value;
-                } else {
-                    this.data$ = elem.textContent;
-                }
-            }
+    if (Sk.inBrowser) {  // todo:  Maybe provide a replaceable function for non-import files
+        elem = document.getElementById(name.v);
+        if (elem == null) {
+            throw new Sk.builtin.IOError("[Errno 2] No such file or directory: '" + name.v + "'");
         } else {
-            this.fileno = 11;
-            this.data$ = Sk.read(name.v);
+            if (elem.nodeName.toLowerCase() == "textarea") {
+                this.data$ = elem.value;
+            } else {
+                this.data$ = elem.textContent;
+            }
         }
-
-        this.lineList = this.data$.split("\n");
-        this.lineList = this.lineList.slice(0, -1);
-
-        for (i in this.lineList) {
-            this.lineList[i] = this.lineList[i] + "\n";
-        }
-        this.currentLine = 0;
+    } else {
+        this.data$ = Sk.read(name.v);
     }
+    this.lineList = this.data$.split("\n");
+    this.lineList = this.lineList.slice(0, -1);
+    for (i in this.lineList) {
+        this.lineList[i] = this.lineList[i] + "\n";
+    }
+    this.currentLine = 0;
     this.pos$ = 0;
 
     this.__class__ = Sk.builtin.file;
-
-    if (Sk.fileopen && this.fileno >= 10) {
-        Sk.fileopen(this);
-    }
 
     return this;
 };
@@ -21960,20 +21304,21 @@ Sk.builtin.file.prototype.tp$iter = function () {
     return ret;
 };
 
+
 Sk.builtin.file.prototype["close"] = new Sk.builtin.func(function (self) {
     self.closed = true;
 });
 
+
 Sk.builtin.file.prototype["flush"] = new Sk.builtin.func(function (self) {
 });
-
 Sk.builtin.file.prototype["fileno"] = new Sk.builtin.func(function (self) {
-    return this.fileno;
+    return 10;
 }); // > 0, not 1/2/3
-
 Sk.builtin.file.prototype["isatty"] = new Sk.builtin.func(function (self) {
     return false;
 });
+
 
 Sk.builtin.file.prototype["read"] = new Sk.builtin.func(function (self, size) {
     var ret;
@@ -21994,49 +21339,15 @@ Sk.builtin.file.prototype["read"] = new Sk.builtin.func(function (self, size) {
 });
 
 Sk.builtin.file.prototype["readline"] = new Sk.builtin.func(function (self, size) {
-    if (self.fileno === 0) {
-        var x, resolution, susp;
-
-        var prompt = prompt ? prompt.v : "";
-        x = Sk.inputfun(prompt);
-
-        if (x instanceof Promise) {
-            susp = new Sk.misceval.Suspension();
-
-            susp.resume = function() {
-                return new Sk.builtin.str(resolution);
-            };
-
-            susp.data = {
-                type: "Sk.promise",
-                promise: x.then(function(value) {
-                    resolution = value;
-                    return value;
-                }, function(err) {
-                    resolution = "";
-                    return err;
-                })
-            };
-
-            return susp;
-        } else {
-            return new Sk.builtin.str(x);
-        }
-    } else {
-        var line = "";
-        if (self.currentLine < self.lineList.length) {
-            line = self.lineList[self.currentLine];
-            self.currentLine++;
-        }
-        return new Sk.builtin.str(line);
+    var line = "";
+    if (self.currentLine < self.lineList.length) {
+        line = self.lineList[self.currentLine];
+        self.currentLine++;
     }
+    return new Sk.builtin.str(line);
 });
 
 Sk.builtin.file.prototype["readlines"] = new Sk.builtin.func(function (self, sizehint) {
-    if (self.fileno === 0) {
-        return new Sk.builtin.NotImplementedError("readlines ins't implemented because the web doesn't support Ctrl+D");
-    }
-
     var i;
     var arr = [];
     for (i = self.currentLine; i < self.lineList.length; i++) {
@@ -22066,28 +21377,7 @@ Sk.builtin.file.prototype["truncate"] = new Sk.builtin.func(function (self, size
 });
 
 Sk.builtin.file.prototype["write"] = new Sk.builtin.func(function (self, str) {
-    var mode = Sk.ffi.remapToJs(self.mode);
-    if (mode === "w" || mode === "wb" || mode === "a" || mode === "ab") {
-        if (Sk.filewrite) {
-            if (self.closed) {
-                throw new Sk.builtin.ValueError("I/O operation on closed file");
-            }
-
-            if (self.fileno === 1) {
-                Sk.output(Sk.ffi.remapToJs(str));
-            } else {
-                Sk.filewrite(self, str);
-            }
-        } else {
-            if (self.fileno === 1) {
-                Sk.output(Sk.ffi.remapToJs(str));
-            } else {
-                goog.asserts.fail();
-            }
-        }
-    } else {
-        throw new Sk.builtin.IOError("File not open for writing");
-    }
+    goog.asserts.fail();
 });
 
 
@@ -22128,7 +21418,7 @@ Sk.ffi.remapToPy = function (obj) {
     } else if (typeof obj === "number") {
         return Sk.builtin.assk$(obj);
     } else if (typeof obj === "boolean") {
-        return new Sk.builtin.bool(obj);
+        return obj;
     }
     goog.asserts.fail("unhandled remap type " + typeof(obj));
 };
@@ -22168,8 +21458,6 @@ Sk.ffi.remapToJs = function (obj) {
             ret.push(Sk.ffi.remapToJs(obj.v[i]));
         }
         return ret;
-    } else if (obj instanceof Sk.builtin.bool) {
-        return obj.v ? true : false;
     } else if (obj instanceof Sk.builtin.int_) {
         return Sk.builtin.asnum$(obj);
     } else if (obj instanceof Sk.builtin.float_) {
@@ -22178,8 +21466,6 @@ Sk.ffi.remapToJs = function (obj) {
         return Sk.builtin.asnum$(obj);
     } else if (typeof obj === "number" || typeof obj === "boolean") {
         return obj;
-    } else if (obj === undefined) {
-        return undefined;
     } else {
         return obj.v;
     }
@@ -24495,7 +23781,7 @@ Parser.prototype.classify = function (type, value, context) {
         ilabel = this.grammar.keywords.hasOwnProperty(value) && this.grammar.keywords[value];
 
         /* Check for handling print as an builtin function */
-        if(value === "print" && (this.p_flags & Parser.CO_FUTURE_PRINT_FUNCTION || Sk.__future__.print_function === true)) {
+        if(value === "print" && (this.p_flags & Parser.CO_FUTURE_PRINT_FUNCTION || Sk.python3 === true)) {
             ilabel = false; // ilabel determines if the value is a keyword
         }
 
@@ -27565,7 +26851,7 @@ function parsestr (c, s) {
 
     // treats every sequence as unicodes even if they are not treated with uU prefix
     // kinda hacking though working for most purposes
-    if((c.c_flags & Parser.CO_FUTURE_UNICODE_LITERALS || Sk.__future__.unicode_literals === true)) {
+    if((c.c_flags & Parser.CO_FUTURE_UNICODE_LITERALS || Sk.python3 === true)) {
         unicode = true;
     }
 
@@ -29409,12 +28695,7 @@ var reservedWords_ = {
     "with": true
 };
 
-/**
- * Fix reserved words
- * 
- * @param {string} name
- */
-function fixReservedWords(name) {
+function fixReservedWords (name) {
     if (reservedWords_[name] !== true) {
         return name;
     }
@@ -29701,10 +28982,9 @@ Compiler.prototype.ccompare = function (e) {
 
     for (i = 0; i < n; ++i) {
         rhs = this.vexpr(e.comparators[i]);
-        out("$ret = Sk.builtin.bool(Sk.misceval.richCompareBool(", cur, ",", rhs, ",'", e.ops[i].prototype._astname, "', true));");
-        this._checkSuspension(e);
-        out(fres, "=$ret;");
-        this._jumpfalse("$ret", done);
+        res = this._gr("compare", "Sk.builtin.bool(Sk.misceval.richCompareBool(", cur, ",", rhs, ",'", e.ops[i].prototype._astname, "'))");
+        out(fres, "=", res, ";");
+        this._jumpfalse(res, done);
         cur = rhs;
     }
     this._jump(done);
@@ -30317,23 +29597,7 @@ Compiler.prototype.cwhile = function (s) {
         this.pushContinueBlock(top);
 
         this.setBlock(body);
-
-        if ((Sk.debugging || Sk.killableWhile) && this.u.canSuspend) {
-            var suspType = 'Sk.delay';
-            var debugBlock = this.newBlock("debug breakpoint for line "+s.lineno);
-            out("if (Sk.breakpoints('"+this.filename+"',"+s.lineno+","+s.col_offset+")) {",
-                "var $susp = $saveSuspension({data: {type: '"+suspType+"'}, resume: function() {}}, '"+this.filename+"',"+s.lineno+","+s.col_offset+");",
-                "$susp.$blk = "+debugBlock+";",
-                "$susp.optional = true;",
-                "return $susp;",
-                "}");
-            this._jump(debugBlock);
-            this.setBlock(debugBlock);
-            this.u.doesSuspend = true;
-        }
-
         this.vseqstmt(s.body);
-
         this._jump(top);
 
         this.popContinueBlock();
@@ -30387,20 +29651,6 @@ Compiler.prototype.cfor = function (s) {
     this._jumpundef(nexti, cleanup); // todo; this should be handled by StopIteration
     target = this.vexpr(s.target, nexti);
 
-    if ((Sk.debugging || Sk.killableFor) && this.u.canSuspend) {
-        var suspType = 'Sk.delay';
-        var debugBlock = this.newBlock("debug breakpoint for line "+s.lineno);
-        out("if (Sk.breakpoints('"+this.filename+"',"+s.lineno+","+s.col_offset+")) {",
-            "var $susp = $saveSuspension({data: {type: '"+suspType+"'}, resume: function() {}}, '"+this.filename+"',"+s.lineno+","+s.col_offset+");",
-            "$susp.$blk = "+debugBlock+";",
-            "$susp.optional = true;",
-            "return $susp;",
-            "}");
-        this._jump(debugBlock);
-        this.setBlock(debugBlock);
-        this.u.doesSuspend = true;
-    }
-
     // execute body
     this.vseqstmt(s.body);
 
@@ -30418,32 +29668,42 @@ Compiler.prototype.cfor = function (s) {
 };
 
 Compiler.prototype.craise = function (s) {
-    var inst = "", exc;
-    if (s.inst) {
-        // handles: raise Error, arguments
-        inst = this.vexpr(s.inst);
-        out("throw ", this.vexpr(s.type), "(", inst, ");");
-    }
-    else if (s.type) {
-        if (s.type.func) {
-            // handles: raise Error(arguments)
-            out("throw ", this.vexpr(s.type), ";");
-        }
-        else {
-            // handles: raise Error OR raise someinstance
-            exc = this._gr("err", this.vexpr(s.type));
-            out("if(",exc," instanceof Sk.builtin.type) {",
-                "throw Sk.misceval.callsim(", exc, ");",
-                "} else if(typeof(",exc,") === 'function') {",
-                "throw ",exc,"();",
-                "} else {",
-                "throw ", exc, ";",
-                "}");
-        }
+    var inst, exc;
+    if (s && s.type && s.type.id && (s.type.id.v === "StopIteration")) {
+        // currently, we only handle StopIteration, and all it does it return
+        // undefined which is what our iterator protocol requires.
+        //
+        // totally hacky, but good enough for now.
+        out("return undefined;");
     }
     else {
-        // re-raise
-        out("throw $err;");
+        inst = "";
+        if (s.inst) {
+            // handles: raise Error, arguments
+            inst = this.vexpr(s.inst);
+            out("throw ", this.vexpr(s.type), "(", inst, ");");
+        }
+        else if (s.type) {
+            if (s.type.func) {
+                // handles: raise Error(arguments)
+                out("throw ", this.vexpr(s.type), ";");
+            }
+            else {
+                // handles: raise Error OR raise someinstance
+                exc = this._gr("err", this.vexpr(s.type));
+                out("if(",exc," instanceof Sk.builtin.type) {",
+                    "throw Sk.misceval.callsim(", exc, ");",
+                    "} else if(typeof(",exc,") === 'function') {",
+                    "throw ",exc,"();",
+                    "} else {",
+                    "throw ", exc, ";",
+                    "}");
+            }
+        }
+        else {
+            // re-raise
+            out("throw $err;");
+        }
     }
 };
 
@@ -30595,13 +29855,12 @@ Compiler.prototype.cfromimport = function (s) {
     var storeName;
     var got;
     var alias;
-    var aliasOut;
     var mod;
     var i;
     var n = s.names.length;
     var names = [];
     for (i = 0; i < n; ++i) {
-        names[i] = "'" + fixReservedWords(s.names[i].name.v) + "'";
+        names[i] = s.names[i].name["$r"]().v;
     }
     out("$ret = Sk.builtin.__import__(", s.module["$r"]().v, ",$gbl,$loc,[", names, "]);");
 
@@ -30612,7 +29871,6 @@ Compiler.prototype.cfromimport = function (s) {
     mod = this._gr("module", "$ret");
     for (i = 0; i < n; ++i) {
         alias = s.names[i];
-        aliasOut = "'" + fixReservedWords(alias.name.v) + "'";
         if (i === 0 && alias.name.v === "*") {
             goog.asserts.assert(n === 1);
             out("Sk.importStar(", mod, ",$loc, $gbl);");
@@ -30620,7 +29878,7 @@ Compiler.prototype.cfromimport = function (s) {
         }
 
         //out("print(\"getting Sk.abstr.gattr(", mod, ",", alias.name["$r"]().v, ")\");");
-        got = this._gr("item", "Sk.abstr.gattr(", mod, ",", aliasOut, ")");
+        got = this._gr("item", "Sk.abstr.gattr(", mod, ",", alias.name["$r"]().v, ")");
         //out("print('got');");
         storeName = alias.name;
         if (alias.asname) {
@@ -30890,9 +30148,6 @@ Compiler.prototype.buildcodeobj = function (n, coname, decorator_list, args, cal
         out(scopename, ".$defaults=[", defaults.join(","), "];");
     }
 
-    if (decos.length > 0) {
-        out(scopename, ".$decorators=[", decos.join(","), "];");
-    }
 
     //
     // attach co_varnames (only the argument names) for keyword argument
@@ -30948,14 +30203,7 @@ Compiler.prototype.buildcodeobj = function (n, coname, decorator_list, args, cal
         }
     }
     else {
-        var res;
-        if (decos.length > 0)
-        {
-            res = this._gr("funcobj", "Sk.misceval.callsim(", scopename, ".$decorators[0], new Sk.builtins['function'](", scopename, ",$gbl", frees, "))"); // scopename, ".$decorators[0](new Sk.builtins['function'](", scopename, ",$gbl", frees, "))";
-        } else {
-            res = this._gr("funcobj", "new Sk.builtins['function'](", scopename, ",$gbl", frees, ")");
-        }
-        return res;
+        return this._gr("funcobj", "new Sk.builtins['function'](", scopename, ",$gbl", frees, ")");
     }
 };
 
@@ -31028,21 +30276,13 @@ Compiler.prototype.cgenexpgen = function (generators, genIndex, elt) {
     this._jump(start);
     this.setBlock(start);
 
-    this.annotateSource(elt);
-
     // load targets
-    out ("$ret = Sk.abstr.iternext(", iter,(this.u.canSuspend?", true":", false"),");");
-
-    this._checkSuspension(elt);
-
-    nexti = this._gr("next", "$ret");
+    nexti = this._gr("next", "Sk.abstr.iternext(", iter, ")");
     this._jumpundef(nexti, end); // todo; this should be handled by StopIteration
     target = this.vexpr(ge.target, nexti);
 
     n = ge.ifs.length;
     for (i = 0; i < n; ++i) {
-        this.annotateSource(ge.ifs[i]);
-
         ifres = this.vexpr(ge.ifs[i]);
         this._jumpfalse(ifres, start);
     }
@@ -31052,8 +30292,6 @@ Compiler.prototype.cgenexpgen = function (generators, genIndex, elt) {
     }
 
     if (genIndex >= generators.length) {
-        this.annotateSource(elt);
-
         velt = this.vexpr(elt);
         out("return [", skip, "/*resume*/,", velt, "/*ret*/];");
         this.setBlock(skip);
@@ -31103,7 +30341,7 @@ Compiler.prototype.cclass = function (s) {
     entryBlock = this.newBlock("class entry");
 
     this.u.prefixCode = "var " + scopename + "=(function $" + s.name.v + "$class_outer($globals,$locals,$rest){var $gbl=$globals,$loc=$locals;";
-    this.u.switchCode += "(function $" + s.name.v + "$_closure(){";
+    this.u.switchCode += "return(function $" + s.name.v + "$_closure(){";
     this.u.switchCode += "var $blk=" + entryBlock + ",$exc=[],$ret=undefined,currLineNo=undefined,currColNo=undefined;"
     if (Sk.execLimit !== null) {
         this.u.switchCode += "if (typeof Sk.execStart === 'undefined') {Sk.execStart = Date.now()}";
@@ -31111,17 +30349,15 @@ Compiler.prototype.cclass = function (s) {
     if (Sk.yieldLimit !== null && this.u.canSuspend) {
         this.u.switchCode += "if (typeof Sk.lastYield === 'undefined') {Sk.lastYield = Date.now()}";
     }
-
-    this.u.switchCode += "while(true){try{";
+    this.u.switchCode += "while(true){";
     this.u.switchCode += this.outputInterruptTest();
     this.u.switchCode += "switch($blk){";
-    this.u.suffixCode = "}}catch(err){ if (!(err instanceof Sk.builtin.BaseException)) { err = new Sk.builtin.ExternalError(err); } err.traceback.push({lineno: currLineNo, colno: currColNo, filename: '"+this.filename+"'}); if ($exc.length>0) { $err = err; $blk=$exc.pop(); continue; } else { throw err; }}}"
-    this.u.suffixCode += "}).apply(null,$rest);});";
+    this.u.suffixCode = "}break;}}).apply(null,$rest);});";
 
     this.u.private_ = s.name;
 
     this.cbody(s.body);
-    out("return;");
+    out("break;");
 
     // build class
 
@@ -31506,15 +30742,10 @@ Compiler.prototype.cmod = function (mod) {
 
     var entryBlock = this.newBlock("module entry");
     this.u.prefixCode = "var " + modf + "=(function($modname){";
-    this.u.varDeclsCode =
-        "var $gbl = {}, $blk=" + entryBlock +
-        ",$exc=[],$loc=$gbl,$err=undefined;$gbl.__name__=$modname;$loc.__file__=new Sk.builtins.str('" + this.filename +
-        "');var $ret=undefined,currLineNo=undefined,currColNo=undefined;";
-
+    this.u.varDeclsCode = "var $gbl = {}, $blk=" + entryBlock + ",$exc=[],$loc=$gbl,$err=undefined;$gbl.__name__=$modname,$ret=undefined,currLineNo=undefined,currColNo=undefined;";
     if (Sk.execLimit !== null) {
         this.u.varDeclsCode += "if (typeof Sk.execStart === 'undefined') {Sk.execStart = Date.now()}";
     }
-
     if (Sk.yieldLimit !== null && this.u.canSuspend) {
         this.u.varDeclsCode += "if (typeof Sk.lastYield === 'undefined') {Sk.lastYield = Date.now()}";
     }
@@ -31522,7 +30753,6 @@ Compiler.prototype.cmod = function (mod) {
     this.u.varDeclsCode += "if ("+modf+".wakingSuspension!==undefined) { $wakeFromSuspension(); }" +
         "if (Sk.retainGlobals) {" +
         "    if (Sk.globals) { $gbl = Sk.globals; Sk.globals = $gbl; $loc = $gbl; }" +
-        "    if (Sk.globals) { $gbl = Sk.globals; Sk.globals = $gbl; $loc = $gbl; $gbl.__name__=$modname;$loc.__file__=new Sk.builtins.str('" + this.filename + "');}" +
         "    else { Sk.globals = $gbl; }" +
         "} else { Sk.globals = $gbl; }";
 
@@ -31600,7 +30830,8 @@ Sk.resetCompiler = function () {
     Sk.gensymcount = 0;
 };
 
-goog.exportSymbol("Sk.resetCompiler", Sk.resetCompiler);/**
+goog.exportSymbol("Sk.resetCompiler", Sk.resetCompiler);
+/**
  * @namespace Sk
  *
  */
@@ -31715,9 +30946,8 @@ Sk.loadExternalLibrary = function (name) {
  * @param {string} ext extension to use (.py or .js)
  * @param {boolean=} failok will throw if not true
  * @param {boolean=} canSuspend can we suspend?
- * @param {string=} currentDir if any
  */
-Sk.importSearchPathForName = function (name, ext, failok, canSuspend, currentDir) {
+Sk.importSearchPathForName = function (name, ext, failok, canSuspend) {
     var fn;
     var j;
     var fns = [];
@@ -31729,9 +30959,6 @@ Sk.importSearchPathForName = function (name, ext, failok, canSuspend, currentDir
         fns.push(i.v + "/" + nameAsPath + ext);                 // module
         fns.push(i.v + "/" + nameAsPath + "/__init__" + ext);   // package
     }
-
-    fns.push(currentDir + "/" + nameAsPath + ext);
-    fns.push(currentDir + "/" + nameAsPath + "/__init__" + ext);
 
     j = 0;
 
@@ -31790,7 +31017,7 @@ Sk.importSearchPathForName = function (name, ext, failok, canSuspend, currentDir
  *
  * @return {undefined}
  */
-Sk.doOneTimeInitialization = function (canSuspend) {
+Sk.doOneTimeInitialization = function () {
     var proto, name, i, x, func;
     var builtins = [];
 
@@ -31837,21 +31064,13 @@ Sk.doOneTimeInitialization = function (canSuspend) {
 
         proto[name] = new Sk.builtin.func(proto[name]);
     }
-
-    // compile internal python files and add them to the __builtin__ module
-    for (var file in Sk.internalPy.files) {
-        var fileWithoutExtension = file.split(".")[0].split("/")[1];
-        var mod = Sk.importBuiltinWithBody(fileWithoutExtension, false, Sk.internalPy.files[file], canSuspend);
-        goog.asserts.assert(mod["$d"][fileWithoutExtension] !== undefined, "Should have imported name " + fileWithoutExtension);
-        Sk.builtins[fileWithoutExtension] = mod["$d"][fileWithoutExtension];
-    }
 };
 
 /**
  * currently only pull once from Sk.syspath. User might want to change
  * from js or from py.
  */
-Sk.importSetUpPath = function (canSuspend) {
+Sk.importSetUpPath = function () {
     var i;
     var paths;
     if (!Sk.realsyspath) {
@@ -31865,7 +31084,8 @@ Sk.importSetUpPath = function (canSuspend) {
         }
         Sk.realsyspath = new Sk.builtin.list(paths);
 
-        Sk.doOneTimeInitialization(canSuspend);
+        Sk.doOneTimeInitialization();
+
     }
 };
 
@@ -31883,9 +31103,8 @@ if (COMPILED) {
  * @param {string=} suppliedPyBody use as the body of the text for the module
  * rather than Sk.read'ing it.
  * @param {boolean=} canSuspend whether we may return a Suspension object
- * @param {string=} currentDir directory to import from
  */
-Sk.importModuleInternal_ = function (name, dumpJS, modname, suppliedPyBody, canSuspend, currentDir) {
+Sk.importModuleInternal_ = function (name, dumpJS, modname, suppliedPyBody, canSuspend) {
     //dumpJS = true;
     var parentModule;
     var modlocs;
@@ -31899,7 +31118,7 @@ Sk.importModuleInternal_ = function (name, dumpJS, modname, suppliedPyBody, canS
     var parentModName;
     var modNameSplit;
     var toReturn;
-    Sk.importSetUpPath(canSuspend);
+    Sk.importSetUpPath();
 
     // if no module name override, supplied, use default name
     if (modname === undefined) {
@@ -31928,7 +31147,7 @@ Sk.importModuleInternal_ = function (name, dumpJS, modname, suppliedPyBody, canS
         // all parent packages. so, here we're importing 'a.b', which will in
         // turn import 'a', and then return 'a' eventually.
         parentModName = modNameSplit.slice(0, modNameSplit.length - 1).join(".");
-        toReturn = Sk.importModuleInternal_(parentModName, dumpJS, undefined, undefined, canSuspend, currentDir);
+        toReturn = Sk.importModuleInternal_(parentModName, dumpJS, undefined, undefined, canSuspend);
 
         // If this suspends, we suspend. When that suspension is done, we can just
         // repeat this whole function call
@@ -31943,7 +31162,7 @@ Sk.importModuleInternal_ = function (name, dumpJS, modname, suppliedPyBody, canS
                     // They're done!
                     // Re-call ourselves, and this time "toReturn = Sk.importModuleInternal_(...)"
                     // will hit the cache and complete immediately.
-                    return Sk.importModuleInternal_(name, dumpJS, modname, suppliedPyBody, canSuspend, currentDir);
+                    return Sk.importModuleInternal_(name, dumpJS, modname, suppliedPyBody, canSuspend);
                 }
             })(toReturn);
         }
@@ -31978,15 +31197,9 @@ Sk.importModuleInternal_ = function (name, dumpJS, modname, suppliedPyBody, canS
         external = Sk.loadExternalLibrary(name);
         if (external) {
             co = external;
-            if (Sk.externalLibraries) {
-                filename = Sk.externalLibraries[name].path; // get path from config
-            } else {
-                filename = "unknown";
-            }
-            // ToDo: check if this is a dotted name or import from ...
         } else {
             // Try loading as a builtin (i.e. already in JS) module, then try .py files
-            codeAndPath = Sk.importSearchPathForName(name, ".js", true, canSuspend, currentDir);
+            codeAndPath = Sk.importSearchPathForName(name, ".js", true, canSuspend);
 
             co = (function compileReadCode(codeAndPath) {
                 if (codeAndPath instanceof Sk.misceval.Suspension) {
@@ -31994,9 +31207,8 @@ Sk.importModuleInternal_ = function (name, dumpJS, modname, suppliedPyBody, canS
                 } else if (!codeAndPath) {
                     goog.asserts.assert(!isPy, "Sk.importReadFileFromPath did not throw when loading Python file failed");
                     isPy = true;
-                    return compileReadCode(Sk.importSearchPathForName(name, ".py", false, canSuspend, currentDir));
+                    return compileReadCode(Sk.importSearchPathForName(name, ".py", false, canSuspend));
                 } else {
-                    filename = codeAndPath.filename;
                     return isPy ? Sk.compile(codeAndPath.code, codeAndPath.filename, "exec", canSuspend)
                         : { funcname: "$builtinmodule", code: codeAndPath.code };
                 }
@@ -32012,11 +31224,6 @@ Sk.importModuleInternal_ = function (name, dumpJS, modname, suppliedPyBody, canS
 
         module.$js = co.code; // todo; only in DEBUG?
         finalcode = co.code;
-
-        if (filename == null) {
-            filename = co.filename;
-        }
-
         if (Sk.dateSet == null || !Sk.dateSet) {
             finalcode = "Sk.execStart = Sk.lastYield = new Date();\n" + co.code;
             Sk.dateSet = true;
@@ -32070,10 +31277,8 @@ Sk.importModuleInternal_ = function (name, dumpJS, modname, suppliedPyBody, canS
                 modlocs["__name__"] = new Sk.builtin.str(modname);
             }
 
-            modlocs["__path__"] = new Sk.builtin.str(filename);
-
             module["$d"] = modlocs;
-
+            
             // doc string is None, when not present
             if (!modlocs["__doc__"]) {
                 modlocs["__doc__"] = Sk.builtin.none.none$;
@@ -32149,34 +31354,11 @@ Sk.importMainWithBody = function (name, dumpJS, body, canSuspend) {
     return Sk.importModuleInternal_(name, dumpJS, "__main__", body, canSuspend);
 };
 
-/**
- * **Run Python Code in Skulpt**
- *
- * When you want to hand Skulpt a string corresponding to a Python program this is the function.
- *
- * @param name {string}  File name to use for messages related to this run
- * @param dumpJS {boolean} print out the compiled javascript
- * @param body {string} Python Code
- * @param canSuspend {boolean}  Use Suspensions for async execution
- *
- */
-Sk.importBuiltinWithBody = function (name, dumpJS, body, canSuspend) {
-    return Sk.importModuleInternal_(name, dumpJS, "__builtin__", body, canSuspend);
-};
-
 Sk.builtin.__import__ = function (name, globals, locals, fromlist) {
     // Save the Sk.globals variable importModuleInternal_ may replace it when it compiles
     // a Python language module.  for some reason, __name__ gets overwritten.
     var saveSk = Sk.globals;
-
-    var file = Sk.ffi.remapToJs(locals["__file__"]);
-
-    var currentDir =
-        file === undefined ?
-            undefined :
-            file.substring(0, file.lastIndexOf("/"));
-
-    var ret = Sk.importModuleInternal_(name, undefined, undefined, undefined, true, currentDir);
+    var ret = Sk.importModuleInternal_(name, undefined, undefined, undefined, true);
 
     return (function finalizeImport(ret) {
         if (ret instanceof Sk.misceval.Suspension) {
@@ -32186,42 +31368,9 @@ Sk.builtin.__import__ = function (name, globals, locals, fromlist) {
         if (saveSk !== Sk.globals) {
             Sk.globals = saveSk;
         }
-
-        // There is no fromlist, so we have reached the end of the lookup, return
         if (!fromlist || fromlist.length === 0) {
             return ret;
-        } else {
-            // try to load the module from the file system if it is not present on the module itself
-            var i;
-            var fromNameRet; // module returned
-            var fromName; // name of current module for fromlist
-            var fromImportName; // dotted name
-            var dottedName = name.split("."); // get last module in dotted path
-            var lastDottedName = dottedName[dottedName.length-1];
-            
-            var found; // Contains sysmodules the "name"
-            var foundFromName; // Contains the sysmodules[name] the current item from the fromList
-
-            for (i = 0; i < fromlist.length; i++) {
-                fromName = fromlist[i];
-
-                foundFromName = false;
-                found = Sk.sysmodules.sq$contains(name); // Check if "name" is inside sysmodules
-                if (found) {
-                    // Check if the current fromName is already in the "name" module
-                    foundFromName = Sk.sysmodules.mp$subscript(name)["$d"][fromName] != null;
-                }
-
-                // Only import from file system if we have not found the fromName in the current module
-                if (!foundFromName && fromName != "*" && ret.$d[fromName] == null && (ret.$d[lastDottedName] != null || ret.$d.__name__.v == lastDottedName)) {
-                    // add the module name to our requiredImport list
-                    fromImportName = "" + name + "." + fromName;
-                    fromNameRet = Sk.importModuleInternal_(fromImportName, undefined, undefined, undefined, true, currentDir);
-                    ret["$d"][fromName] = fromNameRet;
-                }
-            }
         }
-
         // if there's a fromlist we want to return the actual module, not the
         // toplevel namespace
         ret = Sk.sysmodules.mp$subscript(name);
@@ -32246,7 +31395,6 @@ Sk.importStar = function (module, loc, global) {
 
 goog.exportSymbol("Sk.importMain", Sk.importMain);
 goog.exportSymbol("Sk.importMainWithBody", Sk.importMainWithBody);
-goog.exportSymbol("Sk.importBuiltinWithBody", Sk.importBuiltinWithBody);
 goog.exportSymbol("Sk.builtin.__import__", Sk.builtin.__import__);
 goog.exportSymbol("Sk.importStar", Sk.importStar);
 /**
@@ -32990,18 +32138,6 @@ Sk.builtin.sorted = function sorted (iterable, cmp, key, reverse) {
     var iter;
     var compare_func;
     var list;
-    var rev;
-
-    if (reverse === undefined) {
-        rev = false;
-    } else if (reverse instanceof Sk.builtin.float_) {
-        throw new Sk.builtin.TypeError("an integer is required, got float");
-    } else if (reverse instanceof Sk.builtin.int_ || reverse.prototype instanceof Sk.builtin.int_) {
-        rev = Sk.misceval.isTrue(reverse);
-    } else {
-        throw new Sk.builtin.TypeError("an integer is required");
-    }
-
     if (key !== undefined && !(key instanceof Sk.builtin.none)) {
         if (cmp instanceof Sk.builtin.none || cmp === undefined) {
             compare_func = function (a, b) {
@@ -33033,7 +32169,7 @@ Sk.builtin.sorted = function sorted (iterable, cmp, key, reverse) {
         list.list_sort_(list);
     }
 
-    if (rev) {
+    if (reverse) {
         list.list_reverse_(list);
     }
 
@@ -33051,8 +32187,7 @@ Sk.builtin.sorted = function sorted (iterable, cmp, key, reverse) {
     return list;
 };
 
-/* NOTE: See constants used for kwargs in constants.js */
-// Note: the hacky names on int, long, float have to correspond with the
+/* NOTE: See constants used for kwargs in constants.js */// Note: the hacky names on int, long, float have to correspond with the
 // uniquization that the compiler does for words that are reserved in
 // Javascript. This is a bit hokey.
 Sk.builtins = {
@@ -33107,9 +32242,7 @@ Sk.builtins = {
     "SystemExit"         : Sk.builtin.SystemExit,
     "OverflowError"      : Sk.builtin.OverflowError,
     "OperationError"     : Sk.builtin.OperationError,
-    "NegativePowerError" : Sk.builtin.NegativePowerError,
     "RuntimeError"       : Sk.builtin.RuntimeError,
-    "StopIteration"      : Sk.builtin.StopIteration,
 
     "dict"      : Sk.builtin.dict,
     "file"      : Sk.builtin.file,
@@ -33196,5 +32329,5 @@ Sk.builtin.lng.$defaults = [ new Sk.builtin.int_(10) ];
 // Sk.builtin.sorted
 Sk.builtin.sorted.co_varnames = ["cmp", "key", "reverse"];
 Sk.builtin.sorted.co_numargs = 4;
-Sk.builtin.sorted.$defaults = [Sk.builtin.none.none$, Sk.builtin.none.none$, Sk.builtin.bool.false$];
-Sk.internalPy={"files": {"src/property.py": "class property(object):\n    \"Emulate PyProperty_Type() in Objects/descrobject.c\"\n\n    def __init__(self, fget=None, fset=None, fdel=None, doc=None):\n        self.fget = fget\n        self.fset = fset\n        self.fdel = fdel\n        if doc is None and fget is not None:\n            if hasattr(fget, '__doc__'):\n                doc = fget.__doc__\n            else:\n                doc = None\n        self.__doc__ = doc\n\n    def __get__(self, obj, objtype=None):\n        if obj is None:\n            return self\n        if self.fget is None:\n            raise AttributeError(\"unreadable attribute\")\n        return self.fget(obj)\n\n    def __set__(self, obj, value):\n        if self.fset is None:\n            raise AttributeError(\"can't set attribute\")\n        self.fset(obj, value)\n\n    def __delete__(self, obj):\n        if self.fdel is None:\n            raise AttributeError(\"can't delete attribute\")\n        self.fdel(obj)\n\n    def getter(self, fget):\n        return type(self)(fget, self.fset, self.fdel, self.__doc__)\n\n    def setter(self, fset):\n        return type(self)(self.fget, fset, self.fdel, self.__doc__)\n\n    def deleter(self, fdel):\n        return type(self)(self.fget, self.fset, fdel, self.__doc__)\n"}};
+Sk.builtin.sorted.$defaults = [Sk.builtin.none.none$, Sk.builtin.none.none$, false];
+
