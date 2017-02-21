@@ -8521,13 +8521,14 @@ Sk.builtin.hash = function hash (value) {
 };
 
 Sk.builtin.getattr = function getattr (obj, name, default_) {
-    var ret;
+    var ret, mangledName;
     Sk.builtin.pyCheckArgs("getattr", arguments, 2, 3);
     if (!Sk.builtin.checkString(name)) {
         throw new Sk.builtin.TypeError("attribute name must be string");
     }
 
-    ret = obj.tp$getattr(name.v);
+    mangledName = Sk.fixReservedWords(Sk.ffi.remapToJs(name));
+    ret = obj.tp$getattr(mangledName);
     if (ret === undefined) {
         if (default_ !== undefined) {
             return default_;
@@ -8545,7 +8546,7 @@ Sk.builtin.setattr = function setattr (obj, name, value) {
         throw new Sk.builtin.TypeError("attribute name must be string");
     }
     if (obj.tp$setattr) {
-        obj.tp$setattr(Sk.ffi.remapToJs(name), value);
+        obj.tp$setattr(Sk.fixReservedWords(Sk.ffi.remapToJs(name)), value);
     } else {
         throw new Sk.builtin.AttributeError("object has no attribute " + Sk.ffi.remapToJs(name));
     }
@@ -31620,7 +31621,13 @@ Sk.resetCompiler = function () {
     Sk.gensymcount = 0;
 };
 
-goog.exportSymbol("Sk.resetCompiler", Sk.resetCompiler);/**
+goog.exportSymbol("Sk.resetCompiler", Sk.resetCompiler);
+
+Sk.fixReservedWords = fixReservedWords;
+goog.exportSymbol("Sk.fixReservedWords", Sk.fixReservedWords);
+
+Sk.fixReservedNames = fixReservedNames;
+goog.exportSymbol("Sk.fixReservedNames", Sk.fixReservedNames);/**
  * @namespace Sk
  *
  */
