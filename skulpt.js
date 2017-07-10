@@ -5506,6 +5506,7 @@ Sk.builtin.type = function (name, bases, dict) {
 
         if (bases.v.length === 0 && Sk.__future__.inherit_from_object) {
             // new style class, inherits from object by default
+            bases.v.push(Sk.builtin.object);
             Sk.abstr.setUpInheritance(_name, klass, Sk.builtin.object);
         }
 
@@ -7019,8 +7020,11 @@ Sk.builtin.object = function () {
         return new Sk.builtin.object();
     }
 
-
     return this;
+};
+
+Sk.builtin.object.prototype.__init__ = function __init__() { 
+    return Sk.builtin.none.none$;
 };
 
 var _tryGetSubscript = function(dict, pyName) {
@@ -7410,7 +7414,7 @@ Sk.builtin.object.prototype.ob$ge = function (other) {
  * @type {Array}
  */
 Sk.builtin.object.pythonFunctions = ["__repr__", "__str__", "__hash__",
-"__eq__", "__ne__", "__lt__", "__le__", "__gt__", "__ge__", "__getattr__", "__setattr__"];
+"__eq__", "__ne__", "__lt__", "__le__", "__gt__", "__ge__", "__getattr__", "__setattr__", "__init__"];
 
 /**
  * @constructor
@@ -8562,7 +8566,7 @@ Sk.builtin.raw_input = function (prompt) {
 Sk.builtin.input = Sk.builtin.raw_input;
 
 Sk.builtin.jseval = function jseval (evalcode) {
-    goog.global["eval"](evalcode);
+    goog.global["eval"](Sk.ffi.remapToJs(evalcode));
 };
 
 Sk.builtin.jsmillis = function jsmillis () {
@@ -29748,7 +29752,7 @@ Compiler.prototype.ccall = function (e) {
     }
     else {
         out ("$ret;"); // This forces a failure if $ret isn't defined
-        if (Sk.__future__.super_args && e.func.id && e.func.id.v === "super") {
+        if (Sk.__future__.super_args && e.func.id && e.func.id.v === "super" && args.length == 0) {
             // make sure there is a self variable
             // note that it's part of the js API spec: https://developer.mozilla.org/en/docs/Web/API/Window/self
             // so we should probably add self to the mangling
@@ -31857,6 +31861,7 @@ Sk.doOneTimeInitialization = function (canSuspend) {
             break;
         }
 
+        proto[name].co_kwargs = null;
         proto[name] = new Sk.builtin.func(proto[name]);
     }
 
@@ -33108,6 +33113,8 @@ Sk.builtin.PyType_IsSubtype = function PyType_IsSubtype(a, b) {
  * Sk.builtin.superbi
  */
 Sk.builtin.superbi = function superbi (a_type, self) {
+    Sk.builtin.pyCheckArgs("super", arguments, 1);
+
     var type, obj, obj_type;
 
     if (!(this instanceof Sk.builtin.superbi)) {
@@ -33125,6 +33132,10 @@ Sk.builtin.superbi.__init__ = new Sk.builtin.func(function(self, a_type, other_s
     
     if (!a_type.tp$mro) {
         throw new Sk.builtin.TypeError("must be type, not " + a_type.ob$type.tp$name);
+    }
+
+    if (a_type.tp$mro.v.length == 1) {
+        throw new Sk.builtin.TypeError("must be type, not classobj");
     }
 
     self.obj_type = a_type.tp$mro.v[1];
