@@ -10594,6 +10594,9 @@ Sk.misceval.loadname = function (name, other) {
     var bi;
     var v = other[name];
     if (v !== undefined) {
+        if (typeof v === "function" && v["$d"] === undefined && v["tp$name"] === undefined) {
+            return v();
+        }
         return v;
     }
 
@@ -22574,6 +22577,10 @@ Sk.ffi.remapToPy = function (obj) {
         return obj;
     }
 
+    if (obj instanceof Sk.misceval.Suspension) {
+        return obj;
+    }
+
     if (Object.prototype.toString.call(obj) === "[object Array]") {
         arr = [];
         for (i = 0; i < obj.length; ++i) {
@@ -22582,7 +22589,7 @@ Sk.ffi.remapToPy = function (obj) {
         return new Sk.builtin.list(arr);
     }
 
-    if (typeof obj === "object" && !obj.ob$type) {
+    if (typeof obj === "object") {
         kvs = [];
         for (k in obj) {
             kvs.push(Sk.ffi.remapToPy(k));
@@ -22601,6 +22608,8 @@ Sk.ffi.remapToPy = function (obj) {
 
     if (typeof obj === "boolean") {
         return new Sk.builtin.bool(obj);
+    } else if (typeof obj === "undefined") {
+        return Sk.builtin.none.none$;
     }
 
     if (typeof obj === "function") {
