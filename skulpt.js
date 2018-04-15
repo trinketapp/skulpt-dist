@@ -5122,7 +5122,9 @@ Sk.python2 = {
     python_version: false,
     dunder_next: false,
     dunder_round: false,
-    exceptions: false
+    exceptions: false,
+    no_long_type: false,
+    ceil_floor_int: false
 };
 
 Sk.python3 = {
@@ -5140,7 +5142,9 @@ Sk.python3 = {
     python_version: true,
     dunder_next: true,
     dunder_round: true,
-    exceptions: true
+    exceptions: true,
+    no_long_type: true,
+    ceil_floor_int: true
 };
 
 Sk.configure = function (options) {
@@ -5188,6 +5192,8 @@ Sk.configure = function (options) {
     Sk.bool_check(Sk.__future__.dunder_next, "Sk.__future__.dunder_next");
     Sk.bool_check(Sk.__future__.dunder_round, "Sk.__future__.dunder_round");
     Sk.bool_check(Sk.__future__.exceptions, "Sk.__future__.exceptions");
+    Sk.bool_check(Sk.__future__.no_long_type, "Sk.__future__.no_long_type");
+    Sk.bool_check(Sk.__future__.ceil_floor_int, "Sk.__future__.ceil_floor_int");
 
     // in __future__ add checks for absolute_import
 
@@ -5270,6 +5276,8 @@ Sk.configure = function (options) {
 
     Sk.switch_version("round$", Sk.__future__.dunder_round);
     Sk.switch_version("next$", Sk.__future__.dunder_next);
+
+    Sk.builtin.lng.tp$name = Sk.__future__.no_long_type ? "int" : "long";
 };
 
 goog.exportSymbol("Sk.configure", Sk.configure);
@@ -6125,12 +6133,10 @@ Sk.builtin.type.prototype.tp$richcompare = function (other, op) {
     if (!this["$r"] || !other["$r"]) {
         return undefined;
     }
-    r1 = new Sk.builtin.str(this["$r"]().v.slice(1,6));
-    r2 = new Sk.builtin.str(other["$r"]().v.slice(1,6));
-    if (this["$r"]().v.slice(1,6) !== "class") {
-        r1 = this["$r"]();
-        r2 = other["$r"]();
-    }
+
+    r1 = this["$r"]();
+    r2 = other["$r"]();
+
     return r1.tp$richcompare(r2, op);
 };
 
