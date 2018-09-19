@@ -7157,6 +7157,7 @@ Sk.builtin.object = function () {
 Sk.builtin.object.prototype.__init__ = function __init__() {
     return Sk.builtin.none.none$;
 };
+Sk.builtin.object.prototype.__init__.co_kwargs = 1;
 
 Sk.builtin._tryGetSubscript = function(dict, pyName) {
     try {
@@ -7900,61 +7901,82 @@ Sk.builtin.func.prototype.tp$descr_get = function (obj, objtype) {
     return new Sk.builtin.method(this, obj, objtype);
 };
 
-Sk.builtin.func.prototype.tp$call = function (args, kw) {
-    var j;
-    var i;
-    var numvarnames;
-    var varnames;
-    var kwlen;
-    var kwargsarr;
-    var expectskw;
-    var name;
-    var numargs;
+Sk.builtin.func.prototype.tp$getname = function () {
+    return (this.func_code && this.func_code["co_name"] && this.func_code["co_name"].v) || this.func_code.name || "<native JS>";
+};
 
-    expectskw = this.func_code["co_kwargs"];
-    kwargsarr = [];
+Sk.builtin.func.prototype.tp$call = function (args, kw) {
+    var i;
+    var kwix;
+    var varnames = this.func_code.co_varnames || [];
+    var defaults = this.func_code.$defaults || [];
+    var kwargsarr = [];
+    var expectskw = this.func_code["co_kwargs"];
+    var name;
+    var nargs = args.length;
+    var varargs = [];
+    var defaultsNeeded = varnames.length - nargs > defaults.length ? defaults.length : varnames.length - nargs;
+    var offset = varnames.length - defaults.length;
 
     if (this.func_code["no_kw"] && kw) {
-        name = (this.func_code && this.func_code["co_name"] && this.func_code["co_name"].v) || "<native JS>";
-        throw new Sk.builtin.TypeError(name + "() takes no keyword arguments");
+        throw new Sk.builtin.TypeError(this.tp$getname() + "() takes no keyword arguments");
     }
 
     if (kw) {
-        // bind the kw args
-        kwlen = kw.length;
-        varnames = this.func_code["co_varnames"];
-        numvarnames = varnames && varnames.length;
-        for (i = 0; i < kwlen; i += 2) {
-            // todo; make this a dict mapping name to offset
-            for (j = 0; j < numvarnames; ++j) {
-                if (kw[i] === varnames[j]) {
-                    break;
-                }
-            }
-            if (varnames && j !== numvarnames) {
-                if (j in args) {
-                    name = (this.func_code && this.func_code["co_name"] && this.func_code["co_name"].v) || "<native JS>";
+        for (i = 0; i < kw.length; i += 2) {
+            if (varnames && ((kwix = varnames.indexOf(kw[i])) !== -1)) {
+                if (kwix < nargs) {
+                    name = this.tp$getname();
+                    if (name in Sk.builtins && this === Sk.builtins[name]) {
+                        throw new Sk.builtin.TypeError("Argument given by name ('" + kw[i] + "') and position (" + (kwix + 1) + ")");
+                    }
                     throw new Sk.builtin.TypeError(name + "() got multiple values for keyword argument '" + kw[i] + "'");
                 }
-                args[j] = kw[i + 1];
+                varargs[kwix] = kw[i + 1];
             } else if (expectskw) {
                 // build kwargs dict
                 kwargsarr.push(new Sk.builtin.str(kw[i]));
                 kwargsarr.push(kw[i + 1]);
             } else {
-                name = (this.func_code && this.func_code["co_name"] && this.func_code["co_name"].v) || "<native JS>";
+                name = this.tp$getname();
+                if (name in Sk.builtins && this === Sk.builtins[name]) {
+                    throw new Sk.builtin.TypeError("'" + kw[i] + "' is an invalid keyword argument for this function");        
+                } 
                 throw new Sk.builtin.TypeError(name + "() got an unexpected keyword argument '" + kw[i] + "'");
+            }
+        }
+    }
+    
+    // add defaults if there are enough because if we add them and leave a hole in the args array, pycheckargs doesn't work correctly
+    // maybe we should fix pycheckargs too though. 
+    if (defaultsNeeded <= defaults.length) {
+        for (i = defaults.length - defaultsNeeded; i < defaults.length; i++) {
+            if (!varargs[offset + i]) {
+                varargs[offset + i] = defaults[i];
+            }
+        }
+    }
+    
+    // add arguments found in varargs
+    for (i = 0; i < varargs.length; i++) {
+        if (varargs[i]) {
+            args[i] = varargs[i];
+        }
+    }
+
+    if (kw && nargs < varnames.length - defaults.length) {
+        for (i = nargs; i < varnames.length - defaults.length; i++) {
+            if (kw.indexOf(varnames[i]) === -1) {
+                throw new Sk.builtin.TypeError(this.tp$getname() + "() takes atleast " + (varnames.length - defaults.length) + " arguments (" + (nargs + varargs.filter(function(x) { return x; }).length) +  " given)");
             }
         }
     }
 
     if (this.func_closure) {
         // todo; OK to modify?
-        if (this.func_code["co_varnames"]) {
+        if (varnames) {
             // Make sure all default arguments are in args before adding closure
-            numargs = args.length;
-            numvarnames = this.func_code["co_varnames"].length;
-            for (i = numargs; i < numvarnames; i++) {
+            for (i = args.length; i < varnames.length; i++) {
                 args.push(undefined);
             }
         }
@@ -7966,16 +7988,18 @@ Sk.builtin.func.prototype.tp$call = function (args, kw) {
         args.unshift(kwargsarr);
     }
 
-    //print(JSON.stringify(args, null, 2));
-
     // note: functions expect 'this' to be globals to avoid having to
     // slice/unshift onto the main args
     return this.func_code.apply(this.func_globals, args);
 };
 
 Sk.builtin.func.prototype["$r"] = function () {
-    var name = (this.func_code && this.func_code["co_name"] && this.func_code["co_name"].v) || "<native JS>";
-    return new Sk.builtin.str("<function " + name + ">");
+    var name = this.tp$getname();
+    if (name in Sk.builtins && this === Sk.builtins[name]) {
+        return new Sk.builtin.str("<built-in function " + name + ">");
+    } else {
+        return new Sk.builtin.str("<function " + name + ">");        
+    }
 };/**
  * builtins are supposed to come from the __builtin__ module, but we don't do
  * that yet.
@@ -8460,6 +8484,10 @@ Sk.builtin.abs = function abs (x) {
     throw new TypeError("bad operand type for abs(): '" + Sk.abstr.typeName(x) + "'");
 };
 
+// fabs belongs in the math module but has been a Skulpt builtin since 41665a97d (2012).
+// Left in for backwards compatibility for now
+Sk.builtin.fabs = Sk.builtin.abs;
+
 Sk.builtin.ord = function ord (x) {
     Sk.builtin.pyCheckArgs("ord", arguments, 1, 1);
 
@@ -8927,8 +8955,8 @@ Sk.builtin.map = function map (fun, seq) {
             }
             retval.push(item);
             return loopDeLoop(iter);
-        } 
-        
+        }
+
         if (!(item instanceof Array)) {
             // If there was only one iterable, convert to Javascript
             // Array for call to apply.
@@ -11203,19 +11231,18 @@ goog.exportSymbol("Sk.misceval.Break", Sk.misceval.Break);
  */
 Sk.misceval.applyOrSuspend = function (func, kwdict, varargseq, kws, args) {
     var fcall;
-    var kwix;
-    var numPosParams;
-    var numNonOptParams;
     var it, i;
 
     if (func === null || func instanceof Sk.builtin.none) {
         throw new Sk.builtin.TypeError("'" + Sk.abstr.typeName(func) + "' object is not callable");
-    } else if (typeof func === "function" && func.tp$call === undefined) {
-        // This happens in the wrapper functions around generators
-        // (that creates the iterator), and all the builtin functions
-        // (in builtin.js, for example) as they are javascript functions,
-        // not Sk.builtin.func objects.
+    }
+    
+    if (typeof func === "function" && func.tp$call === undefined) {
+        func = new Sk.builtin.func(func);
+    }
 
+    fcall = func.tp$call;
+    if (fcall !== undefined) {
         if (varargseq) {
             for (it = varargseq.tp$iter(), i = it.tp$iternext(); i !== undefined; i = it.tp$iternext()) {
                 args.push(i);
@@ -11231,69 +11258,20 @@ Sk.misceval.applyOrSuspend = function (func, kwdict, varargseq, kws, args) {
                 kws.push(Sk.abstr.objectGetItem(kwdict, i, false));
             }
         }
-
-        //goog.asserts.assert(((kws === undefined) || (kws.length === 0)));
-        //print('kw args location: '+ kws + ' args ' + args.length)
-        if (kws !== undefined && kws.length > 0) {
-            if (!func.co_varnames) {
-                throw new Sk.builtin.ValueError("Keyword arguments are not supported by this function");
-            }
-
-            //number of positionally placed optional parameters
-            numNonOptParams = func.co_numargs - func.co_varnames.length;
-            numPosParams = args.length - numNonOptParams;
-
-            //add defaults
-            args = args.concat(func.$defaults.slice(numPosParams));
-
-            for (i = 0; i < kws.length; i = i + 2) {
-                kwix = func.co_varnames.indexOf(kws[i]);
-
-                if (kwix === -1) {
-                    throw new Sk.builtin.TypeError("'" + kws[i] + "' is an invalid keyword argument for this function");
-                }
-
-                if (kwix < numPosParams) {
-                    throw new Sk.builtin.TypeError("Argument given by name ('" + kws[i] + "') and position (" + (kwix + numNonOptParams + 1) + ")");
-                }
-
-                args[kwix + numNonOptParams] = kws[i + 1];
-            }
-        }
-        //append kw args to args, filling in the default value where none is provided.
-        return func.apply(null, args);
-    } else {
-        fcall = func.tp$call;
-        if (fcall !== undefined) {
-            if (varargseq) {
-                for (it = varargseq.tp$iter(), i = it.tp$iternext(); i !== undefined; i = it.tp$iternext()) {
-                    args.push(i);
-                }
-            }
-
-            if (kwdict) {
-                for (it = Sk.abstr.iter(kwdict), i = it.tp$iternext(); i!== undefined; i = it.tp$iternext()) {
-                    if (!Sk.builtin.checkString(i)) {
-                        throw new Sk.builtin.TypeError("Function keywords must be strings");
-                    }
-                    kws.push(i.v);
-                    kws.push(Sk.abstr.objectGetItem(kwdict, i, false));
-                }
-            }
-            return fcall.call(func, args, kws, kwdict);
-        }
-
-        // todo; can we push this into a tp$call somewhere so there's
-        // not redundant checks everywhere for all of these __x__ ones?
-        fcall = func.__call__;
-        if (fcall !== undefined) {
-            // func is actually the object here because we got __call__
-            // from it. todo; should probably use descr_get here
-            args.unshift(func);
-            return Sk.misceval.apply(fcall, kwdict, varargseq, kws, args);
-        }
-        throw new Sk.builtin.TypeError("'" + Sk.abstr.typeName(func) + "' object is not callable");
+        return fcall.call(func, args, kws, kwdict);
     }
+
+    // todo; can we push this into a tp$call somewhere so there's
+    // not redundant checks everywhere for all of these __x__ ones?
+    fcall = func.__call__;
+    if (fcall !== undefined) {
+        // func is actually the object here because we got __call__
+        // from it. todo; should probably use descr_get here
+        args.unshift(func);
+        return Sk.misceval.apply(fcall, kwdict, varargseq, kws, args);
+    }
+
+    throw new Sk.builtin.TypeError("'" + Sk.abstr.typeName(func) + "' object is not callable");
 };
 goog.exportSymbol("Sk.misceval.applyOrSuspend", Sk.misceval.applyOrSuspend);
 
@@ -11930,7 +11908,7 @@ Sk.builtin.list.prototype.__delitem__ = new Sk.builtin.func(function (self, inde
  * @param {?=} key optional
  * @param {?=} reverse optional
  */
-Sk.builtin.list.prototype.list_sort_ = function (self, cmp, key, reverse) {
+Sk.builtin.list.prototype.list_sort_ = function sort(self, cmp, key, reverse) {
     var mucked;
     var j;
     var keyvalue;
@@ -11938,8 +11916,8 @@ Sk.builtin.list.prototype.list_sort_ = function (self, cmp, key, reverse) {
     var i;
     var zero;
     var timsort;
-    var has_key = key !== undefined && key !== null;
-    var has_cmp = cmp !== undefined && cmp !== null;
+    var has_key = key !== undefined && key !== null && key !== Sk.builtin.none.none$;
+    var has_cmp = cmp !== undefined && cmp !== null && cmp !== Sk.builtin.none.none$;
     var rev;
 
     if (reverse === undefined) {
@@ -12005,6 +11983,8 @@ Sk.builtin.list.prototype.list_sort_ = function (self, cmp, key, reverse) {
 
     return Sk.builtin.none.none$;
 };
+Sk.builtin.list.prototype.list_sort_.co_varnames = ["__self__", "cmp", "key", "reverse"];
+Sk.builtin.list.prototype.list_sort_.$defaults = [Sk.builtin.none.none$, Sk.builtin.none.none$, false];
 
 /**
  * @param {Sk.builtin.list=} self optional
@@ -12144,13 +12124,8 @@ Sk.builtin.list.prototype["count"] = new Sk.builtin.func(function (self, item) {
 });
 
 Sk.builtin.list.prototype["reverse"] = new Sk.builtin.func(Sk.builtin.list.prototype.list_reverse_);
-
 Sk.builtin.list.prototype["sort"] = new Sk.builtin.func(Sk.builtin.list.prototype.list_sort_);
 
-// Make sure that key/value variations of lst.sort() work
-// See issue 45 on github as to possible alternate approaches to this and
-// why this was chosen - csev
-Sk.builtin.list.prototype["sort"].func_code["co_varnames"] = ["__self__", "cmp", "key", "reverse"];
 goog.exportSymbol("Sk.builtin.list", Sk.builtin.list);
 
 /**
@@ -17199,11 +17174,10 @@ Sk.builtin.biginteger.prototype.isProbablePrime = Sk.builtin.biginteger.prototyp
  * @extends {Sk.builtin.numtype}
  *
  * @param  {!(Object|number)} x    Python object or Javascript number to convert to Python int
- * @param  {!(Object|number)=} base Optional base, can only be used when x is Sk.builtin.str
+ * @param  {!(Object|number|Sk.builtin.none)=} base Optional base, can only be used when x is Sk.builtin.str
  * @return {(Sk.builtin.int_|Sk.builtin.lng)}      Python int (or long, if overflow)
  */
 Sk.builtin.int_ = function (x, base) {
-    "use strict";
     var val;
     var ret; // return value
     var magicName; // name of magic method
@@ -17223,7 +17197,7 @@ Sk.builtin.int_ = function (x, base) {
     }
 
     // if base is not of type int, try calling .__index__
-    if(base !== undefined && !Sk.builtin.checkInt(base)) {
+    if(base !== Sk.builtin.none.none$ && base !== undefined && !Sk.builtin.checkInt(base)) {
         if (Sk.builtin.checkFloat(base)) {
             throw new Sk.builtin.TypeError("integer argument expected, got " + Sk.abstr.typeName(base));
         } else if (base.__index__) {
@@ -17237,6 +17211,9 @@ Sk.builtin.int_ = function (x, base) {
 
     if (x instanceof Sk.builtin.str) {
         base = Sk.builtin.asnum$(base);
+        if (base === Sk.builtin.none.none$) {
+            base = 10;
+        }
 
         val = Sk.str2number(x.v, base, parseInt, function (x) {
             return -x;
@@ -17251,7 +17228,7 @@ Sk.builtin.int_ = function (x, base) {
         return this;
     }
 
-    if (base !== undefined) {
+    if (base !== undefined && base !== Sk.builtin.none.none$) {
         throw new Sk.builtin.TypeError("int() can't convert non-string with explicit base");
     }
 
@@ -18247,8 +18224,8 @@ Sk.builtin.int_.prototype.str$ = function (base, sign) {
  * Takes a JavaScript string and returns a number using the parser and negater
  *  functions (for int/long right now)
  * @param  {string} s       Javascript string to convert to a number.
- * @param  {number} base    The base of the number.
- * @param  {function(string, number): number} parser  Function which should take
+ * @param  {(number)} base    The base of the number.
+ * @param  {function(*, (number|undefined)): number} parser  Function which should take
  *  a string that is a postive number which only contains characters that are
  *  valid in the given base and a base and return a number.
  * @param  {function((number|Sk.builtin.biginteger)): number} negater Function which should take a
@@ -18257,7 +18234,6 @@ Sk.builtin.int_.prototype.str$ = function (base, sign) {
  * @return {number}         The number equivalent of the string in the given base
  */
 Sk.str2number = function (s, base, parser, negater, fname) {
-    "use strict";
     var origs = s,
         neg = false,
         i,
@@ -18279,7 +18255,7 @@ Sk.str2number = function (s, base, parser, negater, fname) {
         s = s.substring(1);
     }
 
-    if (base === undefined) {
+    if (base === null || base === undefined) {
         base = 10;
     } // default radix is 10, not dwim
 
@@ -31884,7 +31860,7 @@ Compiler.prototype.buildcodeobj = function (n, coname, decorator_list, args, cal
     //
     this.u.varDeclsCode += "if ("+scopename+".$wakingSuspension!==undefined) { $wakeFromSuspension(); } else {";
 
-    //
+    // this could potentially get removed if generators would learn to deal with args, kw, kwargs, varargs
     // initialize default arguments. we store the values of the defaults to
     // this code object as .$defaults just below after we exit this scope.
     //
@@ -34181,8 +34157,6 @@ Sk.builtin.PyType_IsSubtype = function PyType_IsSubtype(a, b) {
 Sk.builtin.super_ = function super_ (a_type, self) {
     Sk.builtin.pyCheckArgs("super", arguments, 1);
 
-    var type, obj, obj_type;
-
     if (!(this instanceof Sk.builtin.super_)) {
         return new Sk.builtin.super_(a_type, self);
     }
@@ -34291,40 +34265,35 @@ Sk.builtin.super_.__doc__ = new Sk.builtin.str(
 // uniquization that the compiler does for words that are reserved in
 // Javascript. This is a bit hokey.
 Sk.builtins = {
-    "range"     : Sk.builtin.range,
-    "round"     : Sk.builtin.round,
-    "len"       : Sk.builtin.len,
-    "min"       : Sk.builtin.min,
-    "max"       : Sk.builtin.max,
-    "sum"       : Sk.builtin.sum,
-    "zip"       : Sk.builtin.zip,
-    "abs"       : Sk.builtin.abs,
-    "fabs"      : Sk.builtin.abs,	//	Added by RNL
-    "ord"       : Sk.builtin.ord,
-    "chr"       : Sk.builtin.chr,
-    "hex"       : Sk.builtin.hex,
-    "oct"       : Sk.builtin.oct,
-    "bin"       : Sk.builtin.bin,
-    "dir"       : Sk.builtin.dir,
-    "repr"      : Sk.builtin.repr,
-    "open"      : Sk.builtin.open,
-    "isinstance": Sk.builtin.isinstance,
-    "hash"      : Sk.builtin.hash,
-    "getattr"   : Sk.builtin.getattr,
-    "float_$rw$": Sk.builtin.float_,
-    "int_$rw$"  : Sk.builtin.int_,
-    "hasattr"   : Sk.builtin.hasattr,
-    "id"        : Sk.builtin.id,
+    "range"     : new Sk.builtin.func(Sk.builtin.range),
+    "round"     : new Sk.builtin.func(Sk.builtin.round),
+    "len"       : new Sk.builtin.func(Sk.builtin.len),
+    "min"       : new Sk.builtin.func(Sk.builtin.min),
+    "max"       : new Sk.builtin.func(Sk.builtin.max),
+    "sum"       : new Sk.builtin.func(Sk.builtin.sum),
+    "zip"       : new Sk.builtin.func(Sk.builtin.zip),
+    "abs"       : new Sk.builtin.func(Sk.builtin.abs),
+    "fabs"      : new Sk.builtin.func(Sk.builtin.fabs),
+    "ord"       : new Sk.builtin.func(Sk.builtin.ord),
+    "chr"       : new Sk.builtin.func(Sk.builtin.chr),
+    "hex"       : new Sk.builtin.func(Sk.builtin.hex),
+    "oct"       : new Sk.builtin.func(Sk.builtin.oct),
+    "bin"       : new Sk.builtin.func(Sk.builtin.bin),
+    "dir"       : new Sk.builtin.func(Sk.builtin.dir),
+    "repr"      : new Sk.builtin.func(Sk.builtin.repr),
+    "open"      : new Sk.builtin.func(Sk.builtin.open),
+    "isinstance": new Sk.builtin.func(Sk.builtin.isinstance),
+    "hash"      : new Sk.builtin.func(Sk.builtin.hash),
+    "getattr"   : new Sk.builtin.func(Sk.builtin.getattr),
+    "hasattr"   : new Sk.builtin.func(Sk.builtin.hasattr),
+    "id"        : new Sk.builtin.func(Sk.builtin.id),
 
-    "map"   : Sk.builtin.map,
-    "filter": Sk.builtin.filter,
-    "reduce": Sk.builtin.reduce,
-    "sorted": Sk.builtin.sorted,
-
-    "bool"     : Sk.builtin.bool,
-    "any"      : Sk.builtin.any,
-    "all"      : Sk.builtin.all,
-    "enumerate": Sk.builtin.enumerate,
+    "map"       : new Sk.builtin.func(Sk.builtin.map),
+    "filter"    : new Sk.builtin.func(Sk.builtin.filter),
+    "reduce"    : new Sk.builtin.func(Sk.builtin.reduce),
+    "sorted"    : new Sk.builtin.func(Sk.builtin.sorted),
+    "any"       : new Sk.builtin.func(Sk.builtin.any),
+    "all"       : new Sk.builtin.func(Sk.builtin.all),
 
     "AttributeError"     : Sk.builtin.AttributeError,
     "ValueError"         : Sk.builtin.ValueError,
@@ -34347,6 +34316,11 @@ Sk.builtins = {
     "RuntimeError"       : Sk.builtin.RuntimeError,
     "StopIteration"      : Sk.builtin.StopIteration,
 
+    "float_$rw$": Sk.builtin.float_,
+    "int_$rw$"  : Sk.builtin.int_,
+    "bool"      : Sk.builtin.bool,
+    "complex"   : Sk.builtin.complex,
+    "enumerate" : Sk.builtin.enumerate,
     "dict"      : Sk.builtin.dict,
     "file"      : Sk.builtin.file,
     "function"  : Sk.builtin.func,
@@ -34360,21 +34334,21 @@ Sk.builtins = {
     "set"       : Sk.builtin.set,
     "tuple"     : Sk.builtin.tuple,
     "type"      : Sk.builtin.type,
-    "input"     : Sk.builtin.input,
-    "raw_input" : Sk.builtin.raw_input,
-    "setattr"   : Sk.builtin.setattr,
+
+    "input"     : new Sk.builtin.func(Sk.builtin.input),
+    "raw_input" : new Sk.builtin.func(Sk.builtin.raw_input),
+    "setattr"   : new Sk.builtin.func(Sk.builtin.setattr),
     /*'read': Sk.builtin.read,*/
     "jseval"    : Sk.builtin.jseval,
     "jsmillis"  : Sk.builtin.jsmillis,
-    "quit"      : Sk.builtin.quit,
-    "exit"      : Sk.builtin.quit,
+    "quit"      : new Sk.builtin.func(Sk.builtin.quit),
+    "exit"      : new Sk.builtin.func(Sk.builtin.quit),
     "print"     : Sk.builtin.print,
-    "divmod"    : Sk.builtin.divmod,
-    "format"    : Sk.builtin.format,
-    "globals"   : Sk.builtin.globals,
-    "issubclass": Sk.builtin.issubclass,
+    "divmod"    : new Sk.builtin.func(Sk.builtin.divmod),
+    "format"    : new Sk.builtin.func(Sk.builtin.format),
+    "globals"   : new Sk.builtin.func(Sk.builtin.globals),
+    "issubclass": new Sk.builtin.func(Sk.builtin.issubclass),
     "iter"      : Sk.builtin.iter,
-    "complex"   : Sk.builtin.complex,
 
     // Functions below are not implemented
     "bytearray" : Sk.builtin.bytearray,
@@ -34419,17 +34393,60 @@ Sk.builtin.bool.false$ = /** @type {Sk.builtin.bool} */ (Object.create(Sk.builti
 /* Constants used for kwargs */
 
 // Sk.builtin.int_
-Sk.builtin.int_.co_varnames = [ "base" ];
-Sk.builtin.int_.co_numargs = 2;
-Sk.builtin.int_.$defaults = [ new Sk.builtin.int_(10) ];
+Sk.builtin.int_.co_varnames = [ "number", "base" ];
+Sk.builtin.int_.$defaults = [ Sk.builtin.none.none$ ];
 
 // Sk.builtin.lng
-Sk.builtin.lng.co_varnames = [ "base" ];
-Sk.builtin.lng.co_numargs = 2;
-Sk.builtin.lng.$defaults = [ new Sk.builtin.int_(10) ];
+Sk.builtin.lng.co_varnames = [ "number", "base" ];
+Sk.builtin.lng.$defaults = [ Sk.builtin.none.none$ ];
 
 // Sk.builtin.sorted
-Sk.builtin.sorted.co_varnames = ["cmp", "key", "reverse"];
-Sk.builtin.sorted.co_numargs = 4;
+Sk.builtin.sorted.co_varnames = ["list", "cmp", "key", "reverse"];
 Sk.builtin.sorted.$defaults = [Sk.builtin.none.none$, Sk.builtin.none.none$, Sk.builtin.bool.false$];
-Sk.internalPy={"files": {"src/staticmethod.py": "class staticmethod(object):\n    \"Emulate PyStaticMethod_Type() in Objects/funcobject.c\"\n\n    def __init__(self, f):\n        self.f = f\n\n    def __get__(self, obj, objtype=None):\n        return self.f\n", "src/property.py": "class property(object):\n    \"Emulate PyProperty_Type() in Objects/descrobject.c\"\n\n    def __init__(self, fget=None, fset=None, fdel=None, doc=None):\n        self.fget = fget\n        self.fset = fset\n        self.fdel = fdel\n        if doc is None and fget is not None:\n            if hasattr(fget, '__doc__'):\n                doc = fget.__doc__\n            else:\n                doc = None\n        self.__doc__ = doc\n\n    def __get__(self, obj, objtype=None):\n        if obj is None:\n            return self\n        if self.fget is None:\n            raise AttributeError(\"unreadable attribute\")\n        return self.fget(obj)\n\n    def __set__(self, obj, value):\n        if self.fset is None:\n            raise AttributeError(\"can't set attribute\")\n        self.fset(obj, value)\n\n    def __delete__(self, obj):\n        if self.fdel is None:\n            raise AttributeError(\"can't delete attribute\")\n        self.fdel(obj)\n\n    def getter(self, fget):\n        return type(self)(fget, self.fset, self.fdel, self.__doc__)\n\n    def setter(self, fset):\n        return type(self)(self.fget, fset, self.fdel, self.__doc__)\n\n    def deleter(self, fdel):\n        return type(self)(self.fget, self.fset, fdel, self.__doc__)\n", "src/classmethod.py": "class classmethod(object):\n    \"Emulate PyClassMethod_Type() in Objects/funcobject.c\"\n\n    def __init__(self, f):\n        self.f = f\n\n    def __get__(self, obj, klass=None):\n        if klass is None:\n            klass = type(obj)\n        def newfunc(*args):\n            return self.f(klass, *args)\n        return newfunc\n"}};
+
+var builtinNames = [
+    "int_",
+    "lng",
+    "sorted",
+    "range",
+    "round",
+    "len",
+    "min",
+    "max",
+    "sum",
+    "zip",
+    "abs",
+    "fabs",
+    "ord",
+    "chr",
+    "hex",
+    "oct",
+    "bin",
+    "dir",
+    "repr",
+    "open",
+    "isinstance",
+    "hash",
+    "getattr",
+    "hasattr",
+    "id",
+    "map",
+    "filter",
+    "reduce",
+    "sorted",
+    "any",
+    "all",
+    "input",
+    "raw_input",
+    "setattr",
+    "quit",
+    "quit",
+    "divmod",
+    "format",
+    "globals",
+    "issubclass"
+];
+
+for (var i = 0; i < builtinNames.length; i++) {
+    Sk.builtin[builtinNames[i]].co_name = new Sk.builtin.str(builtinNames[i]);
+}Sk.internalPy={"files": {"src/staticmethod.py": "class staticmethod(object):\n    \"Emulate PyStaticMethod_Type() in Objects/funcobject.c\"\n\n    def __init__(self, f):\n        self.f = f\n\n    def __get__(self, obj, objtype=None):\n        return self.f\n", "src/property.py": "class property(object):\n    \"Emulate PyProperty_Type() in Objects/descrobject.c\"\n\n    def __init__(self, fget=None, fset=None, fdel=None, doc=None):\n        self.fget = fget\n        self.fset = fset\n        self.fdel = fdel\n        if doc is None and fget is not None:\n            if hasattr(fget, '__doc__'):\n                doc = fget.__doc__\n            else:\n                doc = None\n        self.__doc__ = doc\n\n    def __get__(self, obj, objtype=None):\n        if obj is None:\n            return self\n        if self.fget is None:\n            raise AttributeError(\"unreadable attribute\")\n        return self.fget(obj)\n\n    def __set__(self, obj, value):\n        if self.fset is None:\n            raise AttributeError(\"can't set attribute\")\n        self.fset(obj, value)\n\n    def __delete__(self, obj):\n        if self.fdel is None:\n            raise AttributeError(\"can't delete attribute\")\n        self.fdel(obj)\n\n    def getter(self, fget):\n        return type(self)(fget, self.fset, self.fdel, self.__doc__)\n\n    def setter(self, fset):\n        return type(self)(self.fget, fset, self.fdel, self.__doc__)\n\n    def deleter(self, fdel):\n        return type(self)(self.fget, self.fset, fdel, self.__doc__)\n", "src/classmethod.py": "class classmethod(object):\n    \"Emulate PyClassMethod_Type() in Objects/funcobject.c\"\n\n    def __init__(self, f):\n        self.f = f\n\n    def __get__(self, obj, klass=None):\n        if klass is None:\n            klass = type(obj)\n        def newfunc(*args):\n            return self.f(klass, *args)\n        return newfunc\n"}};
